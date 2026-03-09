@@ -42,11 +42,13 @@
   },
   "pnpm": {
   "public-hoist-pattern": [
+    "*babel*",
     "react-native",
     "react-native-*",
     "@react-native-community/*",
     "react-native-codegen",
-    "@react-native/codegen"
+    "@react-native/codegen",
+    "@babel/*"
   ]
 },
   "engines": {
