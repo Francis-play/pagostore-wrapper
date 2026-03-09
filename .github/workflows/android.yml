@@ -75,7 +75,14 @@ jobs:
 
 
       - name: Verify React Native CLI
-        run: npx react-native config
+        run: |
+          npx react-native config
+          cd android
+          ./gradlew :app:generateCodegenSchemaFromJavaScript --rerun-tasks --stacktrace
+          ./gradlew :app:generateCodegenArtifactsFromSchema --rerun-tasks --stacktrace
+          ls -la node_modules/react-native-keychain/android/build/generated/source/codegen/jni || true
+          ls -la node_modules/react-native-webview/android/build/generated/source/codegen/jni || true
+          cd ..
 
       # ---------- GRADLE PERMISSION ----------
       - name: Fix Gradle permissions
@@ -94,6 +101,7 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
 
 
 
