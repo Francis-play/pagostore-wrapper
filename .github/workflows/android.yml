@@ -73,6 +73,9 @@ jobs:
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.1.12297006" "cmake;3.22.1"
 
+      # ---------- GRADLE PERMISSION ----------
+      - name: Fix Gradle permissions
+        run: chmod +x android/gradlew
 
       - name: Verify React Native CLI
         run: |
@@ -84,9 +87,6 @@ jobs:
           ls -la node_modules/react-native-webview/android/build/generated/source/codegen/jni || true
           cd ..
 
-      # ---------- GRADLE PERMISSION ----------
-      - name: Fix Gradle permissions
-        run: chmod +x android/gradlew
 
       # ---------- BUILD (SIN CLEAN NI RERUN) ----------
       - name: Build Release APK
@@ -101,6 +101,7 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
 
 
 
