@@ -1,30 +1,26 @@
 type QueueItem = {
   url: string
-  id?: string
-}
-
-type WebViewRef = {
-  injectJavaScript: (js: string) => void
 }
 
 class PurchaseQueue {
 
   private queue: QueueItem[] = []
-
   private running = false
-
-  private webview: WebViewRef | null = null
-
-  private waitingBuyResult = false
+  private webview: any = null
 
   private buyTimer: any = null
+  private waitingForResult = false
 
-  attachWebView(ref: WebViewRef | null) {
+  attachWebView(ref: any) {
     this.webview = ref
   }
 
-  enqueue(item: QueueItem) {
-    this.queue.push(item)
+  detachWebView() {
+    this.webview = null
+  }
+
+  enqueue(url: string) {
+    this.queue.push({ url })
     this.process()
   }
 
@@ -39,25 +35,48 @@ class PurchaseQueue {
     if (!item) return
 
     this.running = true
+    this.waitingForResult = false
 
-    const js = `
+    const script = `
       window.location.href = "${item.url}";
       true;
     `
 
-    this.webview.injectJavaScript(js)
+    try {
+      this.webview.injectJavaScript(script)
+    } catch (e) {
+      this.finish()
+    }
 
   }
 
-  /* ---------------- NAV EVENT ---------------- */
+  onWebViewMessage(event: any) {
 
-  onNav(url: string) {
+    let msg
 
-    if (!this.running) return
+    try {
+      msg = JSON.parse(event.nativeEvent.data)
+    } catch {
+      return
+    }
+
+    const { type, data } = msg
+
+    if (type === "NAV") {
+      this.handleNav(data)
+    }
+
+    if (type === "EBANX_TOKEN") {
+      this.handleEbanxToken()
+    }
+
+  }
+
+  private handleNav(url: string) {
+
+    if (!url) return
 
     if (url.includes("/buy")) {
-
-      this.waitingBuyResult = true
 
       this.startBuyTimer()
 
@@ -65,56 +84,49 @@ class PurchaseQueue {
 
     if (url.includes("/result")) {
 
-      this.finishPurchase(true)
+      this.finish()
 
     }
 
   }
 
-  /* ---------------- EBANX TOKEN ---------------- */
+  private handleEbanxToken() {
 
-  onEbanxToken() {
+    this.waitingForResult = true
 
-    if (!this.running) return
-
-    // solo nos interesa si estamos en buy
-    if (!this.waitingBuyResult) return
-
-    // aquí podrías extender lógica si quieres
   }
-
-  /* ---------------- TIMER ---------------- */
 
   private startBuyTimer() {
 
-    if (this.buyTimer) clearTimeout(this.buyTimer)
+    if (this.buyTimer) {
+      clearTimeout(this.buyTimer)
+    }
 
     this.buyTimer = setTimeout(() => {
 
-      if (this.waitingBuyResult) {
+      if (!this.waitingForResult) {
 
-        // RN debería mostrar WebView aquí
-        // pero no finalizamos la cola aún
+        // algo falló antes de iniciar el pago
+        this.finish()
 
       }
+
+      // si hay token entonces seguimos esperando /result
 
     }, 4000)
 
   }
 
-  /* ---------------- FINISH ---------------- */
-
-  private finishPurchase(success: boolean) {
-
-    this.running = false
-    this.waitingBuyResult = false
+  private finish() {
 
     if (this.buyTimer) {
       clearTimeout(this.buyTimer)
       this.buyTimer = null
     }
 
-    // delay humano antes del siguiente
+    this.waitingForResult = false
+    this.running = false
+
     setTimeout(() => {
       this.process()
     }, 1200)

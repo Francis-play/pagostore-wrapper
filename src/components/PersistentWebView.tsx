@@ -1,42 +1,37 @@
-import React, { forwardRef } from "react"
-import { StyleSheet } from "react-native"
-import { WebView } from "react-native-webview"
-import injected from "../webview/injected"
+import React, {forwardRef, useImperativeHandle, useRef} from 'react';
+import {Platform} from 'react-native';
+import {WebView} from 'react-native-webview';
+import {paymentController} from '../core/paymentController';
+import injected from '../webview/injected'; // if exists
 
-const PersistentWebView = forwardRef<any, any>(
-({ onMessage }, ref) => {
+const PersistentWebView = forwardRef((props, ref) => {
+  const wref = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    injectJavaScript: (js) => {
+      try {
+        if (wref.current && wref.current.injectJavaScript) {
+          wref.current.injectJavaScript(js);
+        }
+      } catch(e){}
+    },
+    getRef: () => wref.current
+  }));
 
   return (
-
     <WebView
-      ref={ref}
-
-      source={{
-        uri: "https://pagostore.garena.com"
-      }}
-
-      injectedJavaScript={injected}
-
-      onMessage={onMessage}
-
-      style={styles.hidden}
-
-      javaScriptEnabled
-      domStorageEnabled
-
+      ref={wref}
+      source={{ uri: 'https://pagostore.garena.com' }}
+      style={{width:0, height:0}}
+      onMessage={(e) => paymentController.onWebViewMessage(e)}
+      sharedCookiesEnabled={true}
+      thirdPartyCookiesEnabled={true}
+      javaScriptEnabled={true}
+      domStorageEnabled={true}
+      originWhitelist={['*']}
+      injectedJavaScript={typeof injected === 'string' ? injected : undefined}
     />
+  );
+});
 
-  )
-})
-
-export default PersistentWebView
-
-const styles = StyleSheet.create({
-
-  hidden:{
-    width:0,
-    height:0,
-    position:"absolute"
-  }
-
-})
+export default PersistentWebView;

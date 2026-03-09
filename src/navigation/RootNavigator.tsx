@@ -1,34 +1,25 @@
-import React from 'react'
-import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import PinScreen from '../screens/PinScreen';
+import HomeScreen from '../screens/HomeScreen';
+import ProcessingScreen from '../screens/ProcessingScreen';
+import BatchPaymentScreen from '../screens/BatchPaymentScreen';
+import ResultScreen from '../screens/ResultScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
-import HomeScreen from '../screens/HomeScreen'
-import PayScreen from '../screens/CheckoutScreen'
+const Stack = createStackNavigator();
 
-export type RootStackParamList = {
-  Home: undefined
-  Pay: undefined
-}
-
-const Stack = createNativeStackNavigator<RootStackParamList>()
-
-export default function RootNavigator() {
+export default function RootNavigator(){
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: 'Pago Helper' }}
-        />
-
-        <Stack.Screen
-          name="Pay"
-          component={PayScreen}
-          options={{ title: 'Pagar' }}
-        />
-
+      <Stack.Navigator initialRouteName="Pin">
+        <Stack.Screen name="Pin" component={PinScreen} options={{headerShown:false}} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{headerShown:false}} />
+        <Stack.Screen name="Processing" component={ProcessingScreen} />
+        <Stack.Screen name="Batch" component={BatchPaymentScreen} />
+        <Stack.Screen name="Result" component={ResultScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   )
