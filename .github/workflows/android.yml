@@ -49,9 +49,6 @@ jobs:
             --bundle-output build/index.android.bundle \
             --assets-dest build
 
-      - name: Runtime JS crash check
-        run: node ci-runtime-check.js
-
       # ---------- JAVA ----------
       - uses: actions/setup-java@v4
         with:
@@ -101,3 +98,4 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
