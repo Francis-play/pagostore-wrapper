@@ -82,7 +82,7 @@ jobs:
         working-directory: android
         run: |
           ./gradlew clean
-          ./gradlew assembleRelease -PnewArchEnabled=false --build-cache
+          ./gradlew assembleRelease --build-cache
 
       # ---------- ARTIFACT ----------
       - uses: actions/upload-artifact@v4
@@ -90,6 +90,7 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
 
 
 
