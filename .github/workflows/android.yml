@@ -40,15 +40,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile --shamefully-hoist
 
-      - name: Bundle JS
-        run: |
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output build/index.android.bundle \
-            --assets-dest build
-
       # ---------- JAVA ----------
       - uses: actions/setup-java@v4
         with:
@@ -98,4 +89,5 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
 
