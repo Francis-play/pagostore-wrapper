@@ -73,6 +73,10 @@ jobs:
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.1.12297006" "cmake;3.22.1"
 
+
+      - name: Verify React Native CLI
+        run: npx react-native config
+
       # ---------- GRADLE PERMISSION ----------
       - name: Fix Gradle permissions
         run: chmod +x android/gradlew
@@ -82,7 +86,7 @@ jobs:
         working-directory: android
         run: |
           ./gradlew clean
-          ./gradlew assembleRelease --build-cache
+          ./gradlew assembleRelease --build-cache --stacktrace
 
       # ---------- ARTIFACT ----------
       - uses: actions/upload-artifact@v4
@@ -90,6 +94,7 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
 
 
 
