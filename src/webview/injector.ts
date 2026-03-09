@@ -1,9 +1,9 @@
 export type CardData = {
-  name: string
-  number: string
-  expiry: string
-  email: string
-}
+  name: string;
+  number: string;
+  expiry: string;
+  email: string;
+};
 
 export function buildInjector(card: CardData) {
   const payload = encodeURIComponent(
@@ -13,7 +13,7 @@ export function buildInjector(card: CardData) {
       expiry: card.expiry,
       email: card.email,
     }),
-  )
+  );
 
   return `
 (function () {
@@ -190,5 +190,5 @@ export function buildInjector(card: CardData) {
 
 })();
 true;
-`
+`;
 }

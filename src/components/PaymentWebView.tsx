@@ -1,19 +1,24 @@
 // src/components/PaymentWebView.tsx
-import React, { useRef, useCallback, useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { WebView, WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
+import React, {useRef, useCallback, useEffect} from 'react';
+import {View, ActivityIndicator, StyleSheet} from 'react-native';
+import {
+  WebView,
+  WebViewMessageEvent,
+  WebViewNavigation,
+} from 'react-native-webview';
 
 type Props = {
-  visible: boolean;            // control de visibilidad (mostrado solo en /buy)
-  targetUrl: string | null;    // URL construida /buy?... , si null no navega
+  visible: boolean; // control de visibilidad (mostrado solo en /buy)
+  targetUrl: string | null; // URL construida /buy?... , si null no navega
   onEbanxCalled: () => void;
   onPaymentSuccess: () => void;
   onPossibleFailure: (reason?: string) => void;
-  injectCard?: {               // si queremos autofill desde RN
+  injectCard?: {
+    // si queremos autofill desde RN
     name: string;
-    number: string;   // sin espacios
-    expiry: string;   // MM/AAAA
-    cvc?: string;     // no guardamos cvc; se puede pasar en tiempo real
+    number: string; // sin espacios
+    expiry: string; // MM/AAAA
+    cvc?: string; // no guardamos cvc; se puede pasar en tiempo real
     email: string;
     promo?: string | null;
   } | null;
@@ -111,71 +116,87 @@ true; // note: keep as last expression
 
 export default function PaymentWebView(props: Props) {
   const webRef = useRef<WebView | null>(null);
-  const ebanxTimer = useRef<number | null>(null);
+  const ebanxTimer = useRef<NodeJS.Timeout | null>(null);
   const seenEbanx = useRef(false);
 
   // handle messages from WebView
-  const onMessage = useCallback((e: WebViewMessageEvent) => {
-    try {
-      const msg = JSON.parse(e.nativeEvent.data);
-      if (msg.type === 'EBANX_CALLED') {
-        seenEbanx.current = true;
-        props.onEbanxCalled();
-        // start 4s timer to wait /result
-        if (ebanxTimer.current) { clearTimeout(ebanxTimer.current as any); }
-        ebanxTimer.current = setTimeout(() => {
-          // if still on buy page (no redirect to /result), notify possible failure
-          webRef.current?.injectJavaScript(`window.ReactNativeWebView.postMessage(JSON.stringify({type:'CHECK_URL', url:location.href}));true;`);
-          props.onPossibleFailure('ebanx_timeout');
-        }, 4000) as any;
-      }
+  const onMessage = useCallback(
+    (e: WebViewMessageEvent) => {
+      try {
+        const msg = JSON.parse(e.nativeEvent.data);
+        if (msg.type === 'EBANX_CALLED') {
+          seenEbanx.current = true;
+          props.onEbanxCalled();
+          // start 4s timer to wait /result
+          if (ebanxTimer.current) {
+            clearTimeout(ebanxTimer.current);
+          }
+          ebanxTimer.current = setTimeout(() => {
+            // if still on buy page (no redirect to /result), notify possible failure
+            webRef.current?.injectJavaScript(
+              `window.ReactNativeWebView.postMessage(JSON.stringify({type:'CHECK_URL', url:location.href}));true;`,
+            );
+            props.onPossibleFailure('ebanx_timeout');
+          }, 4000);
+        }
 
-      if (msg.type === 'FILL_DONE') {
-        // nothing for now
-      }
+        if (msg.type === 'FILL_DONE') {
+          // nothing for now
+        }
 
-      if (msg.type === 'CLICKED_PAY') {
-        // user attempted payment
-      }
+        if (msg.type === 'CLICKED_PAY') {
+          // user attempted payment
+        }
 
-      if (msg.type === 'CMD_ERROR') {
-        console.warn("WebView CMD_ERROR", msg.error);
-      }
+        if (msg.type === 'CMD_ERROR') {
+          console.warn('WebView CMD_ERROR', msg.error);
+        }
 
-      if (msg.type === 'CHECK_URL') {
-        // forwarded by injected JS checking location
-        // handled in onNavigationStateChange too
+        if (msg.type === 'CHECK_URL') {
+          // forwarded by injected JS checking location
+          // handled in onNavigationStateChange too
+        }
+      } catch (err) {
+        console.warn('webview onMessage parse error', err);
       }
-    } catch (err) {
-      console.warn("webview onMessage parse error", err);
-    }
-  }, [props]);
+    },
+    [props],
+  );
 
-  const onNavChange = useCallback((nav: WebViewNavigation) => {
-    const u = nav.url || '';
-    if (u.includes('/result')) {
-      // success: clear timers and notify
-      if (ebanxTimer.current) { clearTimeout(ebanxTimer.current as any); ebanxTimer.current = null; }
-      props.onPaymentSuccess();
-    }
-    // show WebView only when target url is buy; parent controls visibility
-  }, [props]);
+  const onNavChange = useCallback(
+    (nav: WebViewNavigation) => {
+      const u = nav.url || '';
+      if (u.includes('/result')) {
+        // success: clear timers and notify
+        if (ebanxTimer.current) {
+          clearTimeout(ebanxTimer.current);
+          ebanxTimer.current = null;
+        }
+        props.onPaymentSuccess();
+      }
+      // show WebView only when target url is buy; parent controls visibility
+    },
+    [props],
+  );
 
   // expose helpers to parent via ref if needed (skipped here)
   useEffect(() => {
     // when targetUrl changes, navigate
     if (props.targetUrl && webRef.current) {
-      webRef.current.injectJavaScript(`window.location.href = ${JSON.stringify(props.targetUrl)}; true;`);
+      webRef.current.injectJavaScript(
+        `window.location.href = ${JSON.stringify(props.targetUrl)}; true;`,
+      );
     }
   }, [props.targetUrl]);
 
   // on mount, inject hooks
   return (
-    <View style={[styles.container, { display: props.visible ? 'flex' : 'none' }]}>
+    <View
+      style={[styles.container, {display: props.visible ? 'flex' : 'none'}]}>
       <WebView
-        ref={ref => (webRef.current = ref)}
-        source={{ uri: "https://pagostore.garena.com" }}
-        originWhitelist={["*"]}
+        ref={webRef}
+        source={{uri: 'https://pagostore.garena.com'}}
+        originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
@@ -191,5 +212,5 @@ export default function PaymentWebView(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 }
+  container: {flex: 1},
 });

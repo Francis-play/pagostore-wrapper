@@ -1,138 +1,116 @@
 type QueueItem = {
-  url: string
-}
+  url: string;
+};
 
 class PurchaseQueue {
+  private queue: QueueItem[] = [];
+  private running = false;
+  private webview: any = null;
 
-  private queue: QueueItem[] = []
-  private running = false
-  private webview: any = null
-
-  private buyTimer: any = null
-  private waitingForResult = false
+  private buyTimer: any = null;
+  private waitingForResult = false;
 
   attachWebView(ref: any) {
-    this.webview = ref
+    this.webview = ref;
   }
 
   detachWebView() {
-    this.webview = null
+    this.webview = null;
   }
 
   enqueue(url: string) {
-    this.queue.push({ url })
-    this.process()
+    this.queue.push({url});
+    this.process();
   }
 
   private process() {
+    if (this.running) return;
+    if (!this.webview) return;
+    if (this.queue.length === 0) return;
 
-    if (this.running) return
-    if (!this.webview) return
-    if (this.queue.length === 0) return
+    const item = this.queue.shift();
 
-    const item = this.queue.shift()
+    if (!item) return;
 
-    if (!item) return
-
-    this.running = true
-    this.waitingForResult = false
+    this.running = true;
+    this.waitingForResult = false;
 
     const script = `
       window.location.href = "${item.url}";
       true;
-    `
+    `;
 
     try {
-      this.webview.injectJavaScript(script)
+      this.webview.injectJavaScript(script);
     } catch (e) {
-      this.finish()
+      this.finish();
     }
-
   }
 
   onWebViewMessage(event: any) {
-
-    let msg
+    let msg;
 
     try {
-      msg = JSON.parse(event.nativeEvent.data)
+      msg = JSON.parse(event.nativeEvent.data);
     } catch {
-      return
+      return;
     }
 
-    const { type, data } = msg
+    const {type, data} = msg;
 
-    if (type === "NAV") {
-      this.handleNav(data)
+    if (type === 'NAV') {
+      this.handleNav(data);
     }
 
-    if (type === "EBANX_TOKEN") {
-      this.handleEbanxToken()
+    if (type === 'EBANX_TOKEN') {
+      this.handleEbanxToken();
     }
-
   }
 
   private handleNav(url: string) {
+    if (!url) return;
 
-    if (!url) return
-
-    if (url.includes("/buy")) {
-
-      this.startBuyTimer()
-
+    if (url.includes('/buy')) {
+      this.startBuyTimer();
     }
 
-    if (url.includes("/result")) {
-
-      this.finish()
-
+    if (url.includes('/result')) {
+      this.finish();
     }
-
   }
 
   private handleEbanxToken() {
-
-    this.waitingForResult = true
-
+    this.waitingForResult = true;
   }
 
   private startBuyTimer() {
-
     if (this.buyTimer) {
-      clearTimeout(this.buyTimer)
+      clearTimeout(this.buyTimer);
     }
 
     this.buyTimer = setTimeout(() => {
-
       if (!this.waitingForResult) {
-
         // algo falló antes de iniciar el pago
-        this.finish()
-
+        this.finish();
       }
 
       // si hay token entonces seguimos esperando /result
-
-    }, 4000)
-
+    }, 4000);
   }
 
   private finish() {
-
     if (this.buyTimer) {
-      clearTimeout(this.buyTimer)
-      this.buyTimer = null
+      clearTimeout(this.buyTimer);
+      this.buyTimer = null;
     }
 
-    this.waitingForResult = false
-    this.running = false
+    this.waitingForResult = false;
+    this.running = false;
 
     setTimeout(() => {
-      this.process()
-    }, 1200)
-
+      this.process();
+    }, 1200);
   }
-
 }
 
-export const purchaseQueue = new PurchaseQueue()
+export const purchaseQueue = new PurchaseQueue();

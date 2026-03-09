@@ -1,17 +1,15 @@
-import { purchaseQueue } from "./purchaseQueue"
+import {purchaseQueue} from './purchaseQueue';
 
 type BuyParams = {
-  app:string
-  channel:string
-  item:string
-}
+  app: string;
+  channel: string;
+  item: string;
+};
 
-export function buy(params:BuyParams){
-
+export function buy(params: BuyParams) {
   purchaseQueue.enqueue({
     app: params.app,
     channel: params.channel,
-    item: params.item
-  })
-
+    item: params.item,
+  });
 }

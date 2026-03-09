@@ -14,21 +14,23 @@ export default function PinScreen() {
     (async () => {
       try {
         const p = await SecureStore.getPin();
-        if(mounted) setStoredPin(p);
-      } catch(e){}
+        if (mounted) setStoredPin(p);
+      } catch (e) {}
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const onSubmit = () => {
     if (!storedPin) {
       // first time set
       SecureStore.setPin(pin);
-      navigation.reset({index:0, routes:[{name:'Home'}]});
+      navigation.reset({index: 0, routes: [{name: 'Home'}]});
       return;
     }
     if (pin === storedPin) {
-      navigation.reset({index:0, routes:[{name:'Home'}]});
+      navigation.reset({index: 0, routes: [{name: 'Home'}]});
     } else {
       Alert.alert('PIN incorrecto');
     }
@@ -45,13 +47,22 @@ export default function PinScreen() {
         style={styles.input}
         placeholder="PIN"
       />
-      <Button title={storedPin ? 'Entrar' : 'Configurar PIN'} onPress={onSubmit} />
+      <Button
+        title={storedPin ? 'Entrar' : 'Configurar PIN'}
+        onPress={onSubmit}
+      />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1, justifyContent:'center', padding:16},
-  title:{fontSize:20, marginBottom:12},
-  input:{borderWidth:1, borderColor:'#ccc', padding:8, marginBottom:12, borderRadius:6}
+  container: {flex: 1, justifyContent: 'center', padding: 16},
+  title: {fontSize: 20, marginBottom: 12},
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 8,
+    marginBottom: 12,
+    borderRadius: 6,
+  },
 });

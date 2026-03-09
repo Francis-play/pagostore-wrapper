@@ -1,4 +1,4 @@
-import { purchaseQueue } from "./purchaseQueue";
+import {purchaseQueue} from './purchaseQueue';
 
 /**
  * Minimal PaymentController that coordinates purchases and the persistent WebView.
