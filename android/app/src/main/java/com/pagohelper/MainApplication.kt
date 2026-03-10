@@ -20,8 +20,8 @@ class MainApplication : Application(), ReactApplication {
 
       override fun getJSMainModuleName(): String = "index"
 
-      override val isNewArchEnabled: Boolean = false
-      override val isHermesEnabled: Boolean = true
+      override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+      override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
     }
 
   override fun onCreate() {
