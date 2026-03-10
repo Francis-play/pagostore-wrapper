@@ -57,11 +57,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # ---------- PREINSTALL NDK + CMAKE ----------
-      - name: Install NDK & CMake
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.1.12297006" "cmake;3.22.1"
-
       # ---------- GRADLE PERMISSION ----------
       - name: Fix Gradle permissions
         run: chmod +x android/gradlew
@@ -70,10 +65,8 @@ jobs:
         run: |
           npx react-native config
           cd android
-          ./gradlew :app:generateCodegenSchemaFromJavaScript --rerun-tasks --stacktrace
-          ./gradlew :app:generateCodegenArtifactsFromSchema --rerun-tasks --stacktrace
-          ls -la node_modules/react-native-keychain/android/build/generated/source/codegen/jni || true
-          ls -la node_modules/react-native-webview/android/build/generated/source/codegen/jni || true
+          ./gradlew :app:generateCodegenSchemaFromJavaScript 
+          ./gradlew :app:generateCodegenArtifactsFromSchema 
           cd ..
 
       - name: Reset RN build
@@ -86,7 +79,7 @@ jobs:
         working-directory: android
         run: |
           ./gradlew clean
-          ./gradlew assembleRelease --build-cache -x configureCMakeRelWithDebInfo --stacktrace
+          ./gradlew assembleRelease --build-cache --stacktrace
 
       # ---------- ARTIFACT ----------
       - uses: actions/upload-artifact@v4
@@ -94,6 +87,7 @@ jobs:
           name: app-release
 
           path: android/app/build/outputs/apk/release/*.apk
+
 
 
 
