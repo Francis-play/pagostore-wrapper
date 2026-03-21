@@ -1,53 +1,51 @@
-import React, {forwardRef, useImperativeHandle, useRef} from 'react';
-import {Platform} from 'react-native';
-import WebView, {WebViewMessageEvent} from 'react-native-webview';
-import {paymentController} from '../core/paymentController';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react'
+import { StyleSheet } from 'react-native'
+import { WebView } from 'react-native-webview'
+import injected from '../webview/injected'
 
 type Props = {
-  onMessage?: (event: WebViewMessageEvent) => void;
-};
+  onMessage?: (event: any) => void
+}
 
-export type PersistentWebViewRef = {
-  injectJavaScript: (js: string) => void;
-  getRef: () => WebView | null;
-};
+const PersistentWebView = forwardRef<any, Props>(({ onMessage }, ref) => {
 
-const PersistentWebView = forwardRef<PersistentWebViewRef, Props>(
-  (props, ref) => {
-    const wref = useRef<WebView>(null);
+  const wref = useRef<any>(null)
 
-    useImperativeHandle(ref, () => ({
-      injectJavaScript: (js: string) => {
-        try {
-          if (wref.current && wref.current.injectJavaScript) {
-            wref.current.injectJavaScript(js);
-          }
-        } catch (e) {}
-      },
-      getRef: () => wref.current,
-    }));
+  // Expone injectJavaScript y getRef al padre de forma segura
+  useImperativeHandle(ref, () => ({
+    injectJavaScript: (js: string) => {
+      try {
+        if (wref.current?.injectJavaScript) {
+          wref.current.injectJavaScript(js)
+        }
+      } catch {}
+    },
+    getRef: () => wref.current,
+  }))
 
-    const onMessage = (event: WebViewMessageEvent) => {
-      paymentController.onWebViewMessage(event);
-      if (props.onMessage) {
-        props.onMessage(event);
-      }
-    };
+  return (
+    <WebView
+      ref={wref}
+      source={{ uri: 'https://pagostore.garena.com' }}
+      style={styles.hidden}
+      injectedJavaScript={injected}
+      onMessage={onMessage}
+      javaScriptEnabled
+      domStorageEnabled
+      sharedCookiesEnabled
+      thirdPartyCookiesEnabled
+      originWhitelist={['*']}
+    />
+  )
 
-    return (
-      <WebView
-        ref={wref}
-        source={{uri: 'https://pagostore.garena.com'}}
-        style={{width: 0, height: 0}}
-        onMessage={onMessage}
-        sharedCookiesEnabled={true}
-        thirdPartyCookiesEnabled={true}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        originWhitelist={['*']}
-      />
-    );
+})
+
+export default PersistentWebView
+
+const styles = StyleSheet.create({
+  hidden: {
+    width: 0,
+    height: 0,
+    position: 'absolute',
   },
-);
-
-export default PersistentWebView;
+})

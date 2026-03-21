@@ -1,38 +1,63 @@
-import {useRef, useState} from 'react';
-import {WebViewMessageEvent} from 'react-native-webview';
+import { useRef, useState } from 'react'
+import { WebViewMessageEvent } from 'react-native-webview'
+
+export type PaymentState = 'idle' | 'filling' | 'processing' | 'success' | 'error'
 
 export function useWebViewController() {
-  const timer = useRef<NodeJS.Timeout | null>(null);
-  const [showWebView, setShowWebView] = useState(false);
-  const [paymentState, setPaymentState] = useState<
-    'idle' | 'processing' | 'success' | 'error'
-  >('idle');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showWebView,   setShowWebView]   = useState(false)
+  const [paymentState,  setPaymentState]  = useState<PaymentState>('idle')
+  const [fillError,     setFillError]     = useState<string | null>(null)
 
   function handleMessage(event: WebViewMessageEvent) {
-    const msg = JSON.parse(event.nativeEvent.data);
-    if (msg.type === 'EBANX_TOKEN') {
-      setPaymentState('processing');
-      console.log('EBANX TOKEN detectado');
+    let msg: { type: string; data?: any }
+    try { msg = JSON.parse(event.nativeEvent.data) } catch { return }
 
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        console.log('timeout pago');
-        setPaymentState('error');
-        setShowWebView(true);
-      }, 4000);
-    }
+    switch (msg.type) {
 
-    if (msg.type === 'NAV') {
-      const url = msg.data;
-      if (url.includes('/result')) {
-        setPaymentState('success');
-        console.log('Pago finalizado');
+      case 'CARD_FILLED':
+        setPaymentState('filling')
+        break
 
-        if (timer.current) clearTimeout(timer.current);
-        setShowWebView(false);
+      case 'PAY_CLICK':
+        setPaymentState('processing')
+        break
+
+      case 'FILL_ERROR':
+        setPaymentState('error')
+        setFillError(String(msg.data || 'Error desconocido'))
+        break
+
+      case 'EBANX_TOKEN':
+      case 'EBANX_CALLED':
+        setPaymentState('processing')
+        if (timer.current) clearTimeout(timer.current)
+        timer.current = setTimeout(() => {
+          setPaymentState('error')
+          setShowWebView(true)
+        }, 4000)
+        break
+
+      case 'PAY_SUCCESS':
+        setPaymentState('success')
+        if (timer.current) clearTimeout(timer.current)
+        setShowWebView(false)
+        break
+
+      case 'NAV': {
+        const url: string = msg.data || ''
+        if (url.includes('/result')) {
+          setPaymentState('success')
+          if (timer.current) clearTimeout(timer.current)
+          setShowWebView(false)
+        }
+        break
       }
+
+      default:
+        break
     }
   }
 
-  return {showWebView, handleMessage};
+  return { showWebView, paymentState, fillError, handleMessage }
 }

@@ -1,216 +1,201 @@
-// src/components/PaymentWebView.tsx
-import React, {useRef, useCallback, useEffect} from 'react';
-import {View, ActivityIndicator, StyleSheet} from 'react-native';
-import {
-  WebView,
-  WebViewMessageEvent,
-  WebViewNavigation,
-} from 'react-native-webview';
+import React, { useRef, useCallback, useEffect } from 'react'
+import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { WebView, WebViewMessageEvent, WebViewNavigation } from 'react-native-webview'
+import { buildInjector, CardData } from '../webview/injector'
 
-type Props = {
-  visible: boolean; // control de visibilidad (mostrado solo en /buy)
-  targetUrl: string | null; // URL construida /buy?... , si null no navega
-  onEbanxCalled: () => void;
-  onPaymentSuccess: () => void;
-  onPossibleFailure: (reason?: string) => void;
-  injectCard?: {
-    // si queremos autofill desde RN
-    name: string;
-    number: string; // sin espacios
-    expiry: string; // MM/AAAA
-    cvc?: string; // no guardamos cvc; se puede pasar en tiempo real
-    email: string;
-    promo?: string | null;
-  } | null;
-};
+export type PaymentWebViewProps = {
+  visible: boolean
+  targetUrl: string | null
+  playerId?: string | null
+  card: CardData
+  onEbanxCalled: () => void
+  onPaymentSuccess: () => void
+  onPossibleFailure: (reason?: string) => void
+  onReadyForNext?: () => void
+  onUserInfo?: (data: any) => void
+}
 
-const injectedBefore = `
+/**
+ * JS injected before content loads.
+ * Hooks XHR + fetch for EBANX detection.
+ * Exposes window.__ph_handleCommand for RN → WebView commands:
+ *   DO_LOGIN(playerId) — injects player ID and clicks login button
+ *   FETCH_USER_INFO    — fetches /api/auth/get_user_info/multi from inside WebView
+ */
+const PRE_INJECT = `
 (function() {
-  // Hook XMLHttpRequest
-  (function(open) {
+  if (window.__PH_CMD__) return;
+  window.__PH_CMD__ = true;
+
+  (function xhrHook(open) {
     XMLHttpRequest.prototype.open = function(method, url) {
       try {
-        if (typeof url === 'string' && url.includes('customer.ebanx.com/ws/token')) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({type:'EBANX_CALLED', url}));
-        }
+        if (typeof url === 'string' && url.includes('customer.ebanx.com/ws/token'))
+          window.ReactNativeWebView.postMessage(JSON.stringify({type:'EBANX_CALLED'}));
       } catch(e){}
       return open.apply(this, arguments);
     };
   })(XMLHttpRequest.prototype.open);
 
-  // Hook fetch
-  const originalFetch = window.fetch;
-  window.fetch = function() {
-    try {
-      const url = arguments[0];
-      if (typeof url === 'string' && url.includes('customer.ebanx.com/ws/token')) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({type:'EBANX_CALLED', url}));
-      }
-    } catch(e){}
-    return originalFetch.apply(this, arguments);
-  };
+  (function fetchHook() {
+    if (!window.fetch) return;
+    const orig = window.fetch;
+    window.fetch = function() {
+      try {
+        const url = typeof arguments[0] === 'string' ? arguments[0] : (arguments[0] && arguments[0].url);
+        if (url && url.includes('customer.ebanx.com/ws/token'))
+          window.ReactNativeWebView.postMessage(JSON.stringify({type:'EBANX_CALLED'}));
+      } catch(e){}
+      return orig.apply(this, arguments);
+    };
+  })();
 
-  // helper to find inputs by name safely
-  window.__ph_find = function(name) {
-    try {
-      return document.querySelector('input[name="'+name+'"]') || null;
-    } catch(e){ return null; }
-  };
-
-  // listen for RN commands
   window.__ph_handleCommand = function(cmdStr) {
     try {
       const cmd = JSON.parse(cmdStr);
-      if (cmd.type === 'FILL_CARD') {
-        const data = cmd.data;
-        const setVal = (name, val) => {
-          const el = window.__ph_find(name);
-          if (el) {
-            el.focus();
-            el.value = val;
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.blur();
-            return true;
-          }
-          return false;
-        };
-        setVal('cardName', data.name || '');
-        setVal('cardNumber', data.number || '');
-        setVal('cardDueDate', data.expiry || '');
-        setVal('cardCVV', data.cvc || '');
-        setVal('email', data.email || '');
-        if (data.promo) setVal('promoCode', data.promo);
-        // notify RN that fill finished
-        window.ReactNativeWebView.postMessage(JSON.stringify({type:'FILL_DONE'}));
-      }
-
-      if (cmd.type === 'CLICK_PAY') {
-        // find button by text
-        const btn = [...document.querySelectorAll('button')].find(b => (b.innerText||'').includes('Proceder'));
-        if (btn) { btn.click(); window.ReactNativeWebView.postMessage(JSON.stringify({type:'CLICKED_PAY'})); }
-        else window.ReactNativeWebView.postMessage(JSON.stringify({type:'CLICK_PAY_NOT_FOUND'}));
-      }
 
       if (cmd.type === 'DO_LOGIN') {
-        // try to find player id input by placeholder
-        const input = [...document.querySelectorAll('input')].find(i => (i.placeholder||'').includes('ID del jugador'));
+        const input = Array.from(document.querySelectorAll('input'))
+          .find(i => (i.placeholder||'').toLowerCase().includes('id del jugador') ||
+                     (i.placeholder||'').toLowerCase().includes('player id'));
         if (input) {
           input.value = cmd.playerId || '';
           input.dispatchEvent(new Event('input',{bubbles:true}));
-          // try find login button with text 'Entrar' or similar
-          const loginBtn = [...document.querySelectorAll('button')].find(b => (b.innerText||'').match(/Entrar|Iniciar sesión|Login|Ingresar|Acceder/i));
-          if (loginBtn) { loginBtn.click(); window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_CLICKED'})); }
+          const btn = Array.from(document.querySelectorAll('button'))
+            .find(b => (b.innerText||'').match(/Entrar|Login|Ingresar|Acceder|Continuar/i));
+          if (btn) { btn.click(); window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_CLICKED'})); }
           else window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_BTN_NOT_FOUND'}));
         } else {
           window.ReactNativeWebView.postMessage(JSON.stringify({type:'LOGIN_INPUT_NOT_FOUND'}));
         }
       }
+
+      if (cmd.type === 'FETCH_USER_INFO') {
+        fetch('/api/auth/get_user_info/multi')
+          .then(r => r.json())
+          .then(data => window.ReactNativeWebView.postMessage(JSON.stringify({type:'USER_INFO', data})))
+          .catch(e  => window.ReactNativeWebView.postMessage(JSON.stringify({type:'USER_INFO_ERROR', error: String(e)})));
+      }
+
     } catch(e) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({type:'CMD_ERROR', error: ''+e}));
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'CMD_ERROR', error:''+e}));
     }
   };
 
 })();
-true; // note: keep as last expression
-`;
+true;
+`
 
-export default function PaymentWebView(props: Props) {
-  const webRef = useRef<WebView | null>(null);
-  const ebanxTimer = useRef<NodeJS.Timeout | null>(null);
-  const seenEbanx = useRef(false);
+export default function PaymentWebView({
+  visible,
+  targetUrl,
+  playerId,
+  card,
+  onEbanxCalled,
+  onPaymentSuccess,
+  onPossibleFailure,
+  onReadyForNext,
+  onUserInfo,
+}: PaymentWebViewProps) {
 
-  // handle messages from WebView
-  const onMessage = useCallback(
-    (e: WebViewMessageEvent) => {
-      try {
-        const msg = JSON.parse(e.nativeEvent.data);
-        if (msg.type === 'EBANX_CALLED') {
-          seenEbanx.current = true;
-          props.onEbanxCalled();
-          // start 4s timer to wait /result
-          if (ebanxTimer.current) {
-            clearTimeout(ebanxTimer.current);
-          }
-          ebanxTimer.current = setTimeout(() => {
-            // if still on buy page (no redirect to /result), notify possible failure
-            webRef.current?.injectJavaScript(
-              `window.ReactNativeWebView.postMessage(JSON.stringify({type:'CHECK_URL', url:location.href}));true;`,
-            );
-            props.onPossibleFailure('ebanx_timeout');
-          }, 4000);
-        }
+  const webRef     = useRef<WebView | null>(null)
+  const ebanxTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loginDone  = useRef(false)
 
-        if (msg.type === 'FILL_DONE') {
-          // nothing for now
-        }
+  const inject = useCallback((js: string) => {
+    webRef.current?.injectJavaScript(js + '; true;')
+  }, [])
 
-        if (msg.type === 'CLICKED_PAY') {
-          // user attempted payment
-        }
+  const sendCommand = useCallback((cmd: object) => {
+    inject(`window.__ph_handleCommand(${JSON.stringify(JSON.stringify(cmd))})`)
+  }, [inject])
 
-        if (msg.type === 'CMD_ERROR') {
-          console.warn('WebView CMD_ERROR', msg.error);
-        }
-
-        if (msg.type === 'CHECK_URL') {
-          // forwarded by injected JS checking location
-          // handled in onNavigationStateChange too
-        }
-      } catch (err) {
-        console.warn('webview onMessage parse error', err);
-      }
-    },
-    [props],
-  );
-
-  const onNavChange = useCallback(
-    (nav: WebViewNavigation) => {
-      const u = nav.url || '';
-      if (u.includes('/result')) {
-        // success: clear timers and notify
-        if (ebanxTimer.current) {
-          clearTimeout(ebanxTimer.current);
-          ebanxTimer.current = null;
-        }
-        props.onPaymentSuccess();
-      }
-      // show WebView only when target url is buy; parent controls visibility
-    },
-    [props],
-  );
-
-  // expose helpers to parent via ref if needed (skipped here)
+  // When targetUrl changes → navigate and reset login flag
   useEffect(() => {
-    // when targetUrl changes, navigate
-    if (props.targetUrl && webRef.current) {
-      webRef.current.injectJavaScript(
-        `window.location.href = ${JSON.stringify(props.targetUrl)}; true;`,
-      );
+    if (targetUrl && webRef.current) {
+      loginDone.current = false
+      inject(`window.location.href = ${JSON.stringify(targetUrl)}`)
     }
-  }, [props.targetUrl]);
+  }, [targetUrl, inject])
 
-  // on mount, inject hooks
+  const onLoad = useCallback(() => {
+    if (playerId && !loginDone.current) {
+      setTimeout(() => sendCommand({ type: 'DO_LOGIN', playerId }), 600)
+    }
+  }, [playerId, sendCommand])
+
+  const onMessage = useCallback((e: WebViewMessageEvent) => {
+    let msg: { type: string; data?: any }
+    try { msg = JSON.parse(e.nativeEvent.data) } catch { return }
+
+    switch (msg.type) {
+      case 'LOGIN_CLICKED':
+        loginDone.current = true
+        // After login, fetch user info from inside the WebView
+        setTimeout(() => sendCommand({ type: 'FETCH_USER_INFO' }), 1200)
+        break
+
+      case 'LOGIN_INPUT_NOT_FOUND':
+      case 'LOGIN_BTN_NOT_FOUND':
+        loginDone.current = true  // already logged in, carry on
+        break
+
+      case 'USER_INFO':
+        onUserInfo?.(msg.data)
+        break
+
+      case 'EBANX_CALLED':
+        onEbanxCalled()
+        if (ebanxTimer.current) clearTimeout(ebanxTimer.current)
+        ebanxTimer.current = setTimeout(() => {
+          inject(`window.ReactNativeWebView.postMessage(JSON.stringify({type:'CHECK_URL',url:location.href}))`)
+          onPossibleFailure('ebanx_timeout')
+        }, 4000)
+        break
+
+      case 'PAY_SUCCESS':
+        if (ebanxTimer.current) { clearTimeout(ebanxTimer.current); ebanxTimer.current = null }
+        break
+
+      case 'READY_FOR_NEXT':
+        onReadyForNext?.()
+        break
+
+      case 'CMD_ERROR':
+        console.warn('[PaymentWebView] CMD_ERROR', msg.data)
+        break
+    }
+  }, [inject, sendCommand, onEbanxCalled, onPossibleFailure, onReadyForNext, onUserInfo])
+
+  const onNavChange = useCallback((nav: WebViewNavigation) => {
+    if ((nav.url || '').includes('/result')) {
+      if (ebanxTimer.current) { clearTimeout(ebanxTimer.current); ebanxTimer.current = null }
+      onPaymentSuccess()
+    }
+  }, [onPaymentSuccess])
+
   return (
-    <View
-      style={[styles.container, {display: props.visible ? 'flex' : 'none'}]}>
+    <View style={[styles.container, !visible && styles.hidden]}>
       <WebView
-        ref={webRef}
-        source={{uri: 'https://pagostore.garena.com'}}
+        ref={ref => (webRef.current = ref)}
+        source={{ uri: 'https://pagostore.garena.com' }}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
         thirdPartyCookiesEnabled
-        injectedJavaScriptBeforeContentLoaded={injectedBefore}
+        injectedJavaScriptBeforeContentLoaded={PRE_INJECT + buildInjector(card)}
         onMessage={onMessage}
         onNavigationStateChange={onNavChange}
+        onLoad={onLoad}
         startInLoadingState
-        renderLoading={() => <ActivityIndicator size="large" color="#ff3b3b" />}
+        renderLoading={() => <ActivityIndicator size="large" color="#e53e3e" />}
       />
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1},
-});
+  container: { flex: 1 },
+  hidden:    { position: 'absolute', width: 0, height: 0, opacity: 0 },
+})

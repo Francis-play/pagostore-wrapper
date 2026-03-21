@@ -1,23 +1,7 @@
-import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import React from 'react'
+import RootNavigator from './src/navigation/RootNavigator'
 
-import HomeScreen from './src/screens/HomeScreen';
-import ItemsScreen from './src/screens/ItemsScreen';
-import CheckoutScreen from './src/screens/CheckoutScreen';
-
-const Stack = createNativeStackNavigator();
-
+// Entry point: toda la navegación vive en RootNavigator
 export default function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomeScreen} />
-
-        <Stack.Screen name="Items" component={ItemsScreen} />
-
-        <Stack.Screen name="Checkout" component={CheckoutScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+  return <RootNavigator />
 }

@@ -1,15 +1,18 @@
-import {purchaseQueue} from './purchaseQueue';
+import { purchaseQueue } from '../core/purchaseQueue'
+import { buildBuyUrl }   from '../utils/buildBuyUrl'
 
 type BuyParams = {
-  app: string;
-  channel: string;
-  item: string;
-};
+  appId:     number
+  channelId: number
+  itemId:    number
+  qty?:      number
+}
 
 export function buy(params: BuyParams) {
-  purchaseQueue.enqueue({
-    app: params.app,
-    channel: params.channel,
-    item: params.item,
-  });
+  const url = buildBuyUrl(params.appId, params.channelId, params.itemId)
+  const count = params.qty ?? 1
+
+  for (let i = 0; i < count; i++) {
+    purchaseQueue.enqueue({ url, id: `${params.itemId}_${i}` })
+  }
 }

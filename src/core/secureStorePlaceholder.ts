@@ -3,21 +3,15 @@
  * Replace with your secureStorage implementation (Keychain/EncryptedStorage).
  */
 const SecureStore = {
-  async getPin() {
+  async getPin(){
     try {
       const v = await Promise.resolve(null);
       return v;
-    } catch (e) {
-      return null;
-    }
+    } catch { return null; }
   },
-  async setPin(pin) {
-    try {
-      return Promise.resolve(true);
-    } catch (e) {
-      return false;
-    }
-  },
+  async setPin(_pin: string){
+    try { return Promise.resolve(true); } catch { return false; }
+  }
 };
 
 export default SecureStore;

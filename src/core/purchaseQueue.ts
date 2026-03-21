@@ -1,116 +1,111 @@
-type QueueItem = {
-  url: string;
-};
+
+export type QueueItem = {
+  url: string
+  id?: string
+}
+
+type WebViewRef = {
+  injectJavaScript: (js: string) => void
+}
 
 class PurchaseQueue {
-  private queue: QueueItem[] = [];
-  private running = false;
-  private webview: any = null;
 
-  private buyTimer: any = null;
-  private waitingForResult = false;
+  private queue: QueueItem[] = []
+  private running            = false
+  private webview: WebViewRef | null = null
+  private buyTimer: any      = null
+  private waitingForResult   = false
+  private currentUrl: string = ''
 
-  attachWebView(ref: any) {
-    this.webview = ref;
+  attachWebView(ref: WebViewRef | null) { this.webview = ref }
+  detachWebView() { this.webview = null }
+
+  enqueue(item: QueueItem) {
+    this.queue.push(item)
+    this.process()
   }
 
-  detachWebView() {
-    this.webview = null;
-  }
-
-  enqueue(url: string) {
-    this.queue.push({url});
-    this.process();
+  hasMore(): boolean {
+    return this.queue.length > 0
   }
 
   private process() {
-    if (this.running) return;
-    if (!this.webview) return;
-    if (this.queue.length === 0) return;
+    if (this.running) return
+    if (!this.webview) return
+    if (this.queue.length === 0) return
 
-    const item = this.queue.shift();
+    const item = this.queue.shift()
+    if (!item) return
 
-    if (!item) return;
-
-    this.running = true;
-    this.waitingForResult = false;
-
-    const script = `
-      window.location.href = "${item.url}";
-      true;
-    `;
+    this.running           = true
+    this.waitingForResult  = false
+    this.currentUrl        = item.url
 
     try {
-      this.webview.injectJavaScript(script);
-    } catch (e) {
-      this.finish();
+      this.webview.injectJavaScript(
+        `window.location.href = ${JSON.stringify(item.url)}; true;`
+      )
+    } catch {
+      this.finishPurchase(false)
     }
+  }
+
+  /** Called by CheckoutScreen when injector sends READY_FOR_NEXT.
+   *  If there are more items, reuse the current WebView session by
+   *  navigating directly — faster than a full page reload. */
+  onReadyForNext() {
+    if (this.queue.length === 0) {
+      // No more — let CheckoutScreen know processing is done
+      this.running = false
+      return false  // caller navigates to Result
+    }
+
+    const next = this.queue.shift()!
+    this.currentUrl       = next.url
+    this.waitingForResult = false
+
+    // Navigate directly — session + cookies are already active
+    try {
+      this.webview?.injectJavaScript(
+        `window.location.href = ${JSON.stringify(next.url)}; true;`
+      )
+    } catch {
+      this.finishPurchase(false)
+    }
+    return true  // caller stays on CheckoutScreen
   }
 
   onWebViewMessage(event: any) {
-    let msg;
+    let msg: any
+    try { msg = JSON.parse(event.nativeEvent.data) } catch { return }
 
-    try {
-      msg = JSON.parse(event.nativeEvent.data);
-    } catch {
-      return;
-    }
+    const { type, data } = msg
 
-    const {type, data} = msg;
-
-    if (type === 'NAV') {
-      this.handleNav(data);
-    }
-
-    if (type === 'EBANX_TOKEN') {
-      this.handleEbanxToken();
-    }
+    if (type === 'NAV')         this.handleNav(data)
+    if (type === 'EBANX_TOKEN') this.waitingForResult = true
   }
 
   private handleNav(url: string) {
-    if (!url) return;
+    if (!this.running || !url) return
 
-    if (url.includes('/buy')) {
-      this.startBuyTimer();
-    }
-
-    if (url.includes('/result')) {
-      this.finish();
-    }
-  }
-
-  private handleEbanxToken() {
-    this.waitingForResult = true;
+    if (url.includes('/buy'))    this.startBuyTimer()
+    if (url.includes('/result')) this.finishPurchase(true)
   }
 
   private startBuyTimer() {
-    if (this.buyTimer) {
-      clearTimeout(this.buyTimer);
-    }
-
+    if (this.buyTimer) clearTimeout(this.buyTimer)
     this.buyTimer = setTimeout(() => {
-      if (!this.waitingForResult) {
-        // algo falló antes de iniciar el pago
-        this.finish();
-      }
-
-      // si hay token entonces seguimos esperando /result
-    }, 4000);
+      if (!this.waitingForResult) this.finishPurchase(false)
+    }, 4000)
   }
 
-  private finish() {
-    if (this.buyTimer) {
-      clearTimeout(this.buyTimer);
-      this.buyTimer = null;
-    }
-
-    this.waitingForResult = false;
-    this.running = false;
-
-    setTimeout(() => {
-      this.process();
-    }, 1200);
+  private finishPurchase(success: boolean) {
+    if (this.buyTimer) { clearTimeout(this.buyTimer); this.buyTimer = null }
+    this.waitingForResult = false
+    this.running          = false
+    console.log('[QUEUE] finishPurchase:', success)
+    setTimeout(() => this.process(), 1200)
   }
 }
 
-export const purchaseQueue = new PurchaseQueue();
+export const purchaseQueue = new PurchaseQueue()

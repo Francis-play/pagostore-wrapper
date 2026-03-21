@@ -1,30 +1,27 @@
-import React, {createContext, useRef, useEffect} from 'react';
-import PersistentWebView, {
-  PersistentWebViewRef,
-} from '../components/PersistentWebView';
-import {purchaseQueue} from '../purchase/purchaseQueue';
-import {useWebViewController} from '../webview/useWebViewController';
+import React, { createContext, useRef } from "react"
+import { WebView } from "react-native-webview"
+import PersistentWebView from "../components/PersistentWebView"
+import { useWebViewController } from "../webview/useWebViewController"
 
-export const WebViewContext = createContext<{
-  webviewRef: React.RefObject<PersistentWebViewRef | null> | null
-}>({webviewRef: null});
+export const WebViewContext = createContext<any>(null)
 
-export function WebViewProvider({children}: any) {
-  const webviewRef = useRef<PersistentWebViewRef>(null);
+// WebViewProvider: usado por CheckoutScreen para el flujo de pago manual
+// (muestra/oculta el WebView según EBANX_TOKEN y NAV /result)
+export function WebViewProvider({ children }: any) {
 
-  const {handleMessage} = useWebViewController();
-
-  useEffect(() => {
-    if (webviewRef.current) {
-      purchaseQueue.attachWebView(webviewRef.current);
-    }
-  }, []);
+  const webviewRef = useRef<WebView>(null)
+  const { handleMessage } = useWebViewController()
 
   return (
-    <WebViewContext.Provider value={{webviewRef}}>
+    <WebViewContext.Provider value={{ webviewRef }}>
+
       {children}
 
-      <PersistentWebView ref={webviewRef} onMessage={handleMessage} />
+      <PersistentWebView
+        ref={webviewRef}
+        onMessage={handleMessage}
+      />
+
     </WebViewContext.Provider>
-  );
+  )
 }
