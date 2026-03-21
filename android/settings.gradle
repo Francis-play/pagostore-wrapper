@@ -3,9 +3,6 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven {
-            url(new File(rootProject.projectDir, "../node_modules/@react-native-async-storage/async-storage/android/local_repo").toURI())
-        }
     }
     includeBuild("../node_modules/@react-native/gradle-plugin")
 }
