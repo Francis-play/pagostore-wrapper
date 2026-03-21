@@ -1,13 +1,3 @@
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url(new File(rootProject.projectDir, "../node_modules/@react-native-async-storage/async-storage/android/local_repo").toURI())
-        }
-    }
-}
-
 buildscript {
     ext {
         buildToolsVersion = "35.0.0"
