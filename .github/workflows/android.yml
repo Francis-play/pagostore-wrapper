@@ -61,8 +61,12 @@ jobs:
       - name: Fix Gradle permissions
         run: chmod +x android/gradlew
 
-      - name: clean before
-        run: npx react-native bundle --reset-cache ...
+      - name: Clear Metro & Gradle JS cache
+        run: |
+         rm -rf /tmp/metro-*
+         rm -rf ~/.gradle/caches/transforms-*
+         find . -name "*.jsbundle" -delete
+         find . -name "index.android.bundle" -delete
             
       # ---------- BUILD (SIN CLEAN NI RERUN) ----------
       - name: Build Release APK
