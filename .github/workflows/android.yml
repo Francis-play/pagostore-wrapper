@@ -77,7 +77,7 @@ jobs:
            :react-native-keychain:generateCodegenArtifactsFromSchema \
            :react-native-webview:generateCodegenArtifactsFromSchema \
            :app:assembleRelease \
-         --build-cache --stacktrace
+         --stacktrace
 
       # ---------- ARTIFACT ----------
       - uses: actions/upload-artifact@v4
