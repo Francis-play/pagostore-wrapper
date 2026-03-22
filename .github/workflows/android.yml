@@ -60,6 +60,9 @@ jobs:
       # ---------- GRADLE PERMISSION ----------
       - name: Fix Gradle permissions
         run: chmod +x android/gradlew
+
+      - name: clean before
+        run: npx react-native bundle --reset-cache ...
             
       # ---------- BUILD (SIN CLEAN NI RERUN) ----------
       - name: Build Release APK
