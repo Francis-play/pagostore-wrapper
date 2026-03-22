@@ -1,45 +1,34 @@
-/* eslint-disable no-undef */
-(function () {
-  if (window.__PH_INSTALLED__) return;
-  window.__PH_INSTALLED__ = true;
+/* eslint-disable */
+// Este archivo exporta el script como STRING para inyectarlo en el WebView.
+// NO debe ejecutarse como módulo JS — por eso usamos window["his"+"tory"]
+// y window["loc"+"ation"] para que Hermes no resuelva esas referencias
+// al evaluar el bundle de React Native.
 
-  function send(type, data) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type, data }));
-  }
+const script = [
+  '(function(){',
+  'var w=window;',
+  'if(w.__PH_INSTALLED__)return;',
+  'w.__PH_INSTALLED__=true;',
+  'function send(t,d){try{w.ReactNativeWebView.postMessage(JSON.stringify({type:t,data:d!=null?d:null}));}catch(e){}}',
+  'function currentUrl(){try{return w["loc"+"ation"].href;}catch(e){return "";}}',
+  '(function historyWrap(){',
+  'var hist=w["his"+"tory"];',
+  'var _p=hist.pushState,_r=hist.replaceState;',
+  'hist.pushState=function(){_p.apply(hist,arguments);send("NAV",currentUrl());};',
+  'hist.replaceState=function(){_r.apply(hist,arguments);send("NAV",currentUrl());};',
+  'w.addEventListener("popstate",function(){send("NAV",currentUrl());});',
+  'send("NAV",currentUrl());',
+  '})();',
+  '(function xhrWrap(){',
+  'var open=XMLHttpRequest.prototype.open;',
+  'XMLHttpRequest.prototype.open=function(m,url){try{if(url&&url.includes("ebanx.com/ws/token"))send("EBANX_TOKEN",url);}catch(e){}return open.apply(this,arguments);};',
+  '})();',
+  '(function fetchWrap(){',
+  'if(!w.fetch)return;',
+  'var orig=w.fetch;',
+  'w.fetch=function(input,init){try{var url=typeof input==="string"?input:(input&&input.url);if(url&&url.includes("ebanx.com/ws/token"))send("EBANX_TOKEN",url);}catch(e){}return orig.apply(w,arguments);};',
+  '})();',
+  '})();true;',
+].join('');
 
-  // NAV: pushState, replaceState, popstate and initial
-  (function historyWrap() {
-    const _push = history.pushState;
-    const _replace = history.replaceState;
-    history.pushState = function () { _push.apply(this, arguments); send("NAV", location.href); };
-    history.replaceState = function () { _replace.apply(this, arguments); send("NAV", location.href); };
-    window.addEventListener("popstate", () => send("NAV", location.href));
-    // initial
-    send("NAV", location.href);
-  })();
-
-  // Detect XHR
-  (function xhrWrap() {
-    const open = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url) {
-      try {
-        if (url && url.includes("ebanx.com/ws/token")) send("EBANX_TOKEN", url);
-      } catch (e) {}
-      return open.apply(this, arguments);
-    };
-  })();
-
-  // Detect fetch
-  (function fetchWrap() {
-    if (!window.fetch) return;
-    const _fetch = window.fetch;
-    window.fetch = function (input, init) {
-      try {
-        const url = typeof input === "string" ? input : (input && input.url);
-        if (url && url.includes("ebanx.com/ws/token")) send("EBANX_TOKEN", url);
-      } catch (e) {}
-      return _fetch.apply(this, arguments);
-    };
-  })();
-
-})();
+export default script;
