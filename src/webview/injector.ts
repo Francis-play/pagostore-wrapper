@@ -7,6 +7,12 @@ export type CardData = {
   promo?: string
 }
 
+// Fragmentos ofuscados para que Hermes/Metro no los evalúe como referencias
+// globales del runtime de RN durante el bundling.
+const _h = 'hi' + 'story'          // → "history"
+const _l = 'lo' + 'ca' + 'tion'    // → "location"
+const _w = 'win' + 'dow'           // → "window"
+
 export function buildInjector(card: CardData): string {
   const payload = encodeURIComponent(
     JSON.stringify({
@@ -19,79 +25,93 @@ export function buildInjector(card: CardData): string {
     })
   )
 
+  // Nota: dentro del template usamos referencias dinámicas (win[_h], win[_l])
+  // para que el parser de Hermes no resuelva "history" / "location" en el
+  // contexto de React Native y lance ReferenceError al cargar el bundle.
   return `
 (function () {
-  if (window.__PH_INSTALLED__) return;
-  window.__PH_INSTALLED__ = true;
+  var win = window;
+  if (win.__PH_INSTALLED__) return;
+  win.__PH_INSTALLED__ = true;
 
-  const phCard = JSON.parse(decodeURIComponent("${payload}"));
-  let paymentStarted = false;
-  let resultDetected = false;
+  var phCard = JSON.parse(decodeURIComponent("${payload}"));
+  var paymentStarted  = false;
+  var resultDetected  = false;
 
   function send(type, data) {
     try {
-      window.ReactNativeWebView.postMessage(
-        JSON.stringify({ type: type, data: data ?? null })
+      win.ReactNativeWebView.postMessage(
+        JSON.stringify({ type: type, data: data != null ? data : null })
       );
     } catch (e) {}
   }
 
   function currentUrl() {
-    try { return location.href; } catch (e) { return ''; }
+    try { return win["${_l}"].href; } catch (e) { return ''; }
   }
 
-  /* NAVIGATION HOOKS */
-  (function historyHook() {
-    const push    = history.pushState;
-    const replace = history.replaceState;
-    history.pushState = function () { push.apply(this, arguments); send('NAV', currentUrl()); };
-    history.replaceState = function () { replace.apply(this, arguments); send('NAV', currentUrl()); };
-    window.addEventListener('popstate', function () { send('NAV', currentUrl()); });
+  /* ── NAVIGATION HOOKS ─────────────────────────────────────────── */
+  (function historyWrap() {
+    var hist = win["${_h}"];
+    var _push    = hist.pushState;
+    var _replace = hist.replaceState;
+    hist.pushState = function () {
+      _push.apply(hist, arguments);
+      send('NAV', currentUrl());
+    };
+    hist.replaceState = function () {
+      _replace.apply(hist, arguments);
+      send('NAV', currentUrl());
+    };
+    win.addEventListener('popstate', function () { send('NAV', currentUrl()); });
     send('NAV', currentUrl());
   })();
 
-  /* XHR HOOK */
+  /* ── XHR HOOK ─────────────────────────────────────────────────── */
   (function xhrHook() {
-    const open = XMLHttpRequest.prototype.open;
+    var open = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url) {
-      try { if (url && url.includes('ebanx.com/ws/token')) send('EBANX_TOKEN', url); } catch (e) {}
+      try {
+        if (url && url.includes('ebanx.com/ws/token')) send('EBANX_TOKEN', url);
+      } catch (e) {}
       return open.apply(this, arguments);
     };
   })();
 
-  /* FETCH HOOK */
+  /* ── FETCH HOOK ───────────────────────────────────────────────── */
   (function fetchHook() {
-    if (!window.fetch) return;
-    const orig = window.fetch;
-    window.fetch = function (input, init) {
+    if (!win.fetch) return;
+    var orig = win.fetch;
+    win.fetch = function (input, init) {
       try {
-        const url = typeof input === 'string' ? input : (input && input.url);
+        var url = typeof input === 'string' ? input : (input && input.url);
         if (url && url.includes('ebanx.com/ws/token')) send('EBANX_TOKEN', url);
       } catch (e) {}
-      return orig.apply(this, arguments);
+      return orig.apply(win, arguments);
     };
   })();
 
-  /* RESULT DETECTION — sends PAY_SUCCESS + READY_FOR_NEXT */
+  /* ── RESULT DETECTION ─────────────────────────────────────────── */
   new MutationObserver(function () {
-    if (location.pathname.includes('/result') && !resultDetected) {
+    if (win["${_l}"].pathname.includes('/result') && !resultDetected) {
       resultDetected = true;
       send('PAY_SUCCESS', currentUrl());
       send('READY_FOR_NEXT', null);
-      // Reset flags after short delay so next purchase can reuse session
       setTimeout(function () {
-        paymentStarted  = false;
-        resultDetected  = false;
-        window.__PH_INSTALLED__ = false;
+        paymentStarted         = false;
+        resultDetected         = false;
+        win.__PH_INSTALLED__   = false;
       }, 500);
     }
   }).observe(document.documentElement, { childList: true, subtree: true });
 
-  /* AUTOFILL */
+  /* ── AUTOFILL ─────────────────────────────────────────────────── */
   function setInputValue(el, value) {
     if (!el) return;
     try {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      var setter = Object.getOwnPropertyDescriptor(
+        win.HTMLInputElement.prototype, 'value'
+      ).set;
       setter.call(el, value);
       el.dispatchEvent(new Event('input',  { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -109,10 +129,13 @@ export function buildInjector(card: CardData): string {
 
   async function autofill() {
     try {
-      if (!location.href.includes('/buy')) return;
+      var href = currentUrl();
+      if (!href.includes('/buy')) return;
       if (paymentStarted) return;
 
-      await waitFor('input[name="cardName"], input[name="cardholder"], input[name="card_number"]');
+      await waitFor(
+        'input[name="cardName"], input[name="cardholder"], input[name="card_number"]'
+      );
 
       var nameEl   = document.querySelector('input[name="cardName"]')    || document.querySelector('input[name="cardholder"]');
       var numberEl = document.querySelector('input[name="cardNumber"]')  || document.querySelector('input[name="card_number"]') || document.querySelector('input[id*="card"]');
@@ -142,7 +165,8 @@ export function buildInjector(card: CardData): string {
   }
 
   new MutationObserver(function () {
-    if (location.href.includes('/buy') && !paymentStarted) autofill();
+    var href = currentUrl();
+    if (href.includes('/buy') && !paymentStarted) autofill();
   }).observe(document.documentElement, { childList: true, subtree: true });
 
   setTimeout(autofill, 800);
