@@ -60,15 +60,6 @@ jobs:
       # ---------- GRADLE PERMISSION ----------
       - name: Fix Gradle permissions
         run: chmod +x android/gradlew
-
-      - name: Generate Codegen Artifacts
-        working-directory: android
-        run: ./gradlew generateCodegenArtifactsFromSchema
-
-      - name: Reset RN build
-        run: |
-          rm -rf android/app/build
-          rm -rf android/app/.cxx
             
       # ---------- BUILD (SIN CLEAN NI RERUN) ----------
       - name: Build Release APK
