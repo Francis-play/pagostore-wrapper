@@ -29,7 +29,7 @@ class MainApplication : Application(), ReactApplication {
     get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
   override fun onCreate() {
-    super.onCreate()
+    super.onCreate(null)
     loadReactNative(this)  // ← esto reemplaza SoLoader.init
   }
 }
