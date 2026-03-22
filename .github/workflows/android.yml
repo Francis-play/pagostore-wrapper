@@ -61,13 +61,9 @@ jobs:
       - name: Fix Gradle permissions
         run: chmod +x android/gradlew
 
-      - name: Verify React Native CLI
-        run: |
-          npx react-native config
-          cd android
-          ./gradlew :app:generateCodegenSchemaFromJavaScript 
-          ./gradlew :app:generateCodegenArtifactsFromSchema 
-          cd ..
+      - name: Generate Codegen Artifacts
+        working-directory: android
+        run: ./gradlew generateCodegenArtifactsFromSchema
 
       - name: Reset RN build
         run: |
