@@ -73,10 +73,12 @@ jobs:
         working-directory: android
         run: |
          ./gradlew \
-           :react-native-async-storage_async-storage:generateCodegenArtifactsFromSchema \
-           :react-native-keychain:generateCodegenArtifactsFromSchema \
-           :react-native-webview:generateCodegenArtifactsFromSchema \
-           :app:assembleRelease \
+         :react-native-async-storage_async-storage:generateCodegenArtifactsFromSchema \
+         :react-native-keychain:generateCodegenArtifactsFromSchema \
+         :react-native-webview:generateCodegenArtifactsFromSchema \
+         :react-native-screens:generateCodegenArtifactsFromSchema \
+         :react-native-safe-area-context:generateCodegenArtifactsFromSchema \
+         :app:assembleRelease \
          --stacktrace
 
       # ---------- ARTIFACT ----------
