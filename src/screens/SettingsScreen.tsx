@@ -1,13 +1,36 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import React, { useEffect } from 'react'
+import { View, Text, TouchableOpacity, Switch, Alert, ScrollView, StyleSheet } from 'react-native'
+import AsyncStorage         from '@react-native-async-storage/async-storage'
 import { useNavigation }   from '@react-navigation/native'
 import { usePaymentStore } from '../store/usePaymentStore'
 import { clearCard }       from '../security/cardStore'
+import { useWebView }      from '../context/WebViewContext'
+import { REGIONS }         from '../config/regions'
 import { NavProp }         from '../navigation/RootNavigator'
+import { Card } from '../components/Card'
+import { Section } from '../components/Section'
+import { Icon } from '../components/Icon'
+import { colors, radii, spacing, fontSize, fontWeight } from '../theme/tokens'
+
+const REGIONS_KEY = 'ph_active_regions'
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NavProp<'Settings'>>()
-  const { player, setPlayer } = usePaymentStore()
+  const { player, setPlayer, activeRegions, setActiveRegions, toggleRegion } = usePaymentStore()
+  const { mountWebView, unmountWebView, sendCommand } = useWebView()
+
+  useEffect(() => {
+    AsyncStorage.getItem(REGIONS_KEY).then(raw => {
+      if (raw) {
+        const saved: string[] = JSON.parse(raw)
+        setActiveRegions(saved)
+      }
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    AsyncStorage.setItem(REGIONS_KEY, JSON.stringify(activeRegions)).catch(() => {})
+  }, [activeRegions])
 
   const onSignOut = () => {
     Alert.alert(
@@ -20,7 +43,12 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             setPlayer(null)
-            navigation.navigate('Pin')
+            mountWebView()
+            setTimeout(() => {
+              sendCommand({ type: 'CLEAR_SESSION' })
+              setTimeout(() => unmountWebView(), 500)
+            }, 800)
+            navigation.reset({ index: 0, routes: [{ name: 'Pin' }] })
           },
         },
       ]
@@ -51,53 +79,74 @@ export default function SettingsScreen() {
         <Text style={[styles.rowLabel, danger && styles.danger]}>{label}</Text>
         {sub && <Text style={styles.rowSub}>{sub}</Text>}
       </View>
-      <Text style={styles.rowArrow}>›</Text>
+      <Icon name="chevron-right" size={20} color={colors.gray300} />
     </TouchableOpacity>
   )
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
+      <View style={styles.sectionWrap}>
+        <Section title="Regiones activas" hint="Selecciona los países que aparecen en el catálogo. Las regiones desactivadas no se cargan.">
+          <Card padded={false}>
+            {REGIONS.map(r => (
+              <View key={r.code} style={styles.regionRow}>
+                <Text style={styles.regionFlag}>{r.flag}</Text>
+                <Text style={styles.regionLabel}>{r.label}</Text>
+                <Switch
+                  value={activeRegions.includes(r.code)}
+                  onValueChange={() => toggleRegion(r.code)}
+                  trackColor={{ false: colors.gray300, true: colors.primaryLight }}
+                  thumbColor={activeRegions.includes(r.code) ? colors.primary : colors.gray100}
+                />
+              </View>
+            ))}
+          </Card>
+        </Section>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHead}>Catálogo</Text>
-        <Row
-          label="Items disponibles"
-          sub="Cargar y activar/desactivar items por región"
-          onPress={() => navigation.navigate('ItemCatalog')}
-        />
+        <Section title="Catálogo">
+          <Card padded={false}>
+            <Row
+              label="Items disponibles"
+              sub="Cargar y activar/desactivar items por región"
+              onPress={() => navigation.navigate('ItemCatalog')}
+            />
+          </Card>
+        </Section>
+
+        <Section title="Tarjeta">
+          <Card padded={false}>
+            <Row
+              label="Eliminar tarjeta guardada"
+              sub="Los datos se borran del Keychain"
+              onPress={onDeleteCard}
+              danger
+            />
+          </Card>
+        </Section>
+
+        <Section title="Sesión">
+          <Card padded={false}>
+            <Row
+              label={player ? `Cerrar sesión (${player.nickname})` : 'Sin sesión activa'}
+              sub={player ? `ID: ${player.loginId}` : undefined}
+              onPress={onSignOut}
+              danger
+            />
+          </Card>
+        </Section>
       </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHead}>Tarjeta</Text>
-        <Row
-          label="Eliminar tarjeta guardada"
-          sub="Los datos se borran del Keychain"
-          onPress={onDeleteCard}
-          danger
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHead}>Sesión</Text>
-        <Row
-          label={player ? `Cerrar sesión (${player.nickname})` : 'Sin sesión activa'}
-          sub={player ? `ID: ${player.loginId}` : undefined}
-          onPress={onSignOut}
-          danger
-        />
-      </View>
-
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#f9fafb' },
-  section:     { marginTop: 20, marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden' },
-  sectionHead: { fontSize: 11, fontWeight: '700', color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
-  row:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, borderColor: '#f3f4f6' },
-  rowLabel:    { fontSize: 15, color: '#111827', fontWeight: '500' },
-  rowSub:      { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  rowArrow:    { fontSize: 20, color: '#d1d5db', marginLeft: 8 },
-  danger:      { color: '#ef4444' },
+  container:    { flex: 1, backgroundColor: colors.gray50 },
+  sectionWrap:  { paddingBottom: spacing.xxxl },
+  regionRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderColor: colors.gray100, gap: 12 },
+  regionFlag:   { fontSize: 22 },
+  regionLabel:  { flex: 1, fontSize: fontSize.lg, color: colors.gray900, fontWeight: fontWeight.medium },
+  row:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md + 2, borderTopWidth: 1, borderColor: colors.gray100 },
+  rowLabel:     { fontSize: fontSize.lg, color: colors.gray900, fontWeight: fontWeight.medium },
+  rowSub:       { fontSize: fontSize.sm, color: colors.gray400, marginTop: spacing.xs },
+  danger:       { color: colors.error },
 })

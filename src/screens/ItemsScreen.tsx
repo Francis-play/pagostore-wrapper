@@ -1,11 +1,15 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { View, Text, TextInput, StyleSheet, Alert } from 'react-native'
 import { useRoute, useNavigation } from '@react-navigation/native'
 import { usePaymentStore }         from '../store/usePaymentStore'
 import { formatPrice }             from '../services/mapItems'
 import { buy }                     from '../purchase/buy'
 import { NavProp, RootStackParamList } from '../navigation/RootNavigator'
 import { REGIONS }                 from '../config/regions'
+import { Card } from '../components/Card'
+import { Button } from '../components/Button'
+import { Icon } from '../components/Icon'
+import { colors, spacing, radii, fontSize, fontWeight } from '../theme/tokens'
 
 type RouteParams = RootStackParamList['Items']
 
@@ -37,24 +41,30 @@ export default function ItemsScreen() {
       channelId: params.channelId,
       itemId:    params.itemId,
       qty:       params.qty,
+      playerId:  player.loginId,
+      region:    params.region,
+      promo:     params.promo,
+      cvc:       cvc.trim(),
     })
 
-    // CVC travels as nav param — never stored
     navigation.navigate('Checkout', { cvc: cvc.trim() })
   }
 
+  const isValid = player && cvc.length >= 3
+
   return (
     <View style={styles.container}>
-
-      {/* Summary card */}
-      <View style={styles.card}>
-        <Text style={styles.mainItem}>
-          {params.diamonds} 💎
-          {params.bonusDiamonds > 0 && (
-            <Text style={styles.bonus}> (+{params.bonusDiamonds})</Text>
-          )}
-          {params.qty > 1 && <Text style={styles.qty}> × {params.qty}</Text>}
-        </Text>
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Icon name="diamond" size={22} color={colors.gray900} />
+          <Text style={styles.mainItem}>
+            {params.diamonds}
+            {params.bonusDiamonds > 0 && (
+              <Text style={styles.bonus}> (+{params.bonusDiamonds})</Text>
+            )}
+            {params.qty > 1 && <Text style={styles.qty}> × {params.qty}</Text>}
+          </Text>
+        </View>
         {params.qty > 1 && (
           <Text style={styles.totalDiamonds}>{totalDiamonds} 💎 en total</Text>
         )}
@@ -73,62 +83,57 @@ export default function ItemsScreen() {
             <Text style={[styles.detailVal, styles.promoVal]}>{params.promo}</Text>
           </View>
         )}
-      </View>
+      </Card>
 
-      {/* Player */}
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.sectionLabel}>Para</Text>
         {player
           ? <Text style={styles.playerInfo}>{player.nickname}  ·  {player.loginId}</Text>
-          : <Text style={styles.playerMissing}>⚠ Sin jugador activo — inicia sesión en Home</Text>
+          : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon name="warning" size={14} color={colors.warning} />
+              <Text style={styles.playerMissing}>Sin jugador activo — inicia sesión en Home</Text>
+            </View>
         }
-      </View>
+      </Card>
 
-      {/* CVC */}
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.sectionLabel}>CVC de tu tarjeta</Text>
         <TextInput
           value={cvc}
           onChangeText={t => setCvc(t.replace(/\D/g, '').slice(0, 4))}
           placeholder="•••"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.gray400}
           keyboardType="numeric"
           secureTextEntry
           maxLength={4}
           style={styles.cvcInput}
         />
         <Text style={styles.cvcHint}>No se almacena. Solo se usa durante el pago.</Text>
-      </View>
+      </Card>
 
-      <TouchableOpacity
-        style={[styles.btnConfirm, (!player || cvc.length < 3) && styles.btnDisabled]}
+      <Button
+        title="Confirmar compra"
+        disabled={!isValid}
+        style={{ marginTop: spacing.sm }}
         onPress={onConfirm}
-        disabled={!player || cvc.length < 3}
-      >
-        <Text style={styles.btnText}>Confirmar compra</Text>
-      </TouchableOpacity>
-
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: '#f9fafb', padding: 16 },
-  card:           { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb' },
-  mainItem:       { fontSize: 26, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  bonus:          { fontSize: 18, color: '#16a34a' },
-  qty:            { fontSize: 18, color: '#3b82f6' },
-  totalDiamonds:  { fontSize: 13, color: '#6b7280', marginBottom: 8 },
-  detailRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderColor: '#f3f4f6' },
-  detailLabel:    { fontSize: 13, color: '#6b7280' },
-  detailVal:      { fontSize: 13, fontWeight: '600', color: '#111827' },
-  promoVal:       { color: '#16a34a' },
-  sectionLabel:   { fontSize: 12, fontWeight: '600', color: '#6b7280', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 },
-  playerInfo:     { fontSize: 15, fontWeight: '600', color: '#111827' },
-  playerMissing:  { fontSize: 13, color: '#f59e0b' },
-  cvcInput:       { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12, fontSize: 22, color: '#111827', letterSpacing: 8, textAlign: 'center', width: 120, marginBottom: 8 },
-  cvcHint:        { fontSize: 11, color: '#9ca3af' },
-  btnConfirm:     { backgroundColor: '#3b82f6', borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
-  btnDisabled:    { backgroundColor: '#93c5fd' },
-  btnText:        { fontSize: 16, fontWeight: '700', color: '#fff' },
+  container:      { flex: 1, backgroundColor: colors.gray50, padding: spacing.lg },
+  mainItem:       { fontSize: 26, fontWeight: fontWeight.bold, color: colors.gray900, marginBottom: spacing.xs },
+  bonus:          { fontSize: 18, color: colors.success },
+  qty:            { fontSize: 18, color: colors.primary },
+  totalDiamonds:  { fontSize: fontSize.base, color: colors.gray500, marginBottom: spacing.sm },
+  detailRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs + 1, borderTopWidth: 1, borderColor: colors.gray100 },
+  detailLabel:    { fontSize: fontSize.base, color: colors.gray500 },
+  detailVal:      { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.gray900 },
+  promoVal:       { color: colors.success },
+  sectionLabel:   { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.gray500, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: spacing.sm },
+  playerInfo:     { fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.gray900 },
+  playerMissing:  { fontSize: fontSize.base, color: colors.warning },
+  cvcInput:       { borderWidth: 1, borderColor: colors.gray300, borderRadius: radii.sm, padding: spacing.md, fontSize: 22, color: colors.gray900, letterSpacing: 8, textAlign: 'center', width: 120, marginBottom: spacing.sm },
+  cvcHint:        { fontSize: fontSize.xs, color: colors.gray400 },
 })

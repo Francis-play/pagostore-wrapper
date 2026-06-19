@@ -1,17 +1,26 @@
-/**
- * Placeholder secure store wrapper.
- * Replace with your secureStorage implementation (Keychain/EncryptedStorage).
- */
-const SecureStore = {
-  async getPin(){
-    try {
-      const v = await Promise.resolve(null);
-      return v;
-    } catch { return null; }
-  },
-  async setPin(_pin: string){
-    try { return Promise.resolve(true); } catch { return false; }
-  }
-};
+import * as Keychain from "react-native-keychain"
 
-export default SecureStore;
+const SERVICE = "ph_pin"
+
+const SecureStore = {
+  async getPin(): Promise<string | null> {
+    try {
+      const res = await Keychain.getGenericPassword({ service: SERVICE })
+      if (!res) return null
+      return res.password
+    } catch {
+      return null
+    }
+  },
+
+  async setPin(pin: string): Promise<boolean> {
+    try {
+      await Keychain.setGenericPassword(SERVICE, pin, { service: SERVICE })
+      return true
+    } catch {
+      return false
+    }
+  },
+}
+
+export default SecureStore

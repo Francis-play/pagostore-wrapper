@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { StoreItem } from '../services/mapItems'
+import { REGIONS } from '../config/regions'
 
 export type PlayerInfo = {
   loginId: string    // "782913224"
@@ -26,6 +27,9 @@ type State = {
   // Active region shown in HomeScreen
   region: string
 
+  // Regions enabled by the user (region codes)
+  activeRegions: string[]
+
   // Full item catalog across all regions (loaded from Settings)
   catalog: StoreItem[]
 
@@ -40,15 +44,18 @@ type State = {
   setPlayer:    (p: PlayerInfo | null) => void
   setCatalog:   (items: StoreItem[]) => void
   toggleItem:   (itemId: number, region: string) => void
+  setActiveRegions: (codes: string[]) => void
+  toggleRegion: (code: string) => void
   setProcessing: (v: boolean) => void
 }
 
 export const usePaymentStore = create<State>((set, get) => ({
-  queue:      [],
-  processing: false,
-  region:     'DO',
-  catalog:    [],
-  player:     null,
+  queue:          [],
+  processing:     false,
+  region:         'DO',
+  activeRegions:  REGIONS.map(r => r.code),   // default: all
+  catalog:        [],
+  player:         null,
 
   add: (item) =>
     set(s => ({ queue: [...s.queue, item] })),
@@ -76,6 +83,15 @@ export const usePaymentStore = create<State>((set, get) => ({
           ? { ...i, enabled: !i.enabled }
           : i
       ),
+    })),
+
+  setActiveRegions: (codes) => set({ activeRegions: codes }),
+
+  toggleRegion: (code) =>
+    set(s => ({
+      activeRegions: s.activeRegions.includes(code)
+        ? s.activeRegions.filter(c => c !== code)
+        : [...s.activeRegions, code],
     })),
 
   setProcessing: (v) => set({ processing: v }),
