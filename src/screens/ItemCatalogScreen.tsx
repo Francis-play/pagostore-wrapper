@@ -8,26 +8,29 @@ import { usePaymentStore }  from '../store/usePaymentStore'
 import { loadItems }        from '../services/itemService'
 import { mapItems, formatPrice, StoreItem } from '../services/mapItems'
 import { REGIONS }          from '../config/regions'
+import { Icon } from '../components/Icon'
+import { colors, spacing, radii, fontSize, fontWeight } from '../theme/tokens'
 
 const APP_ID        = 100067
 const CATALOG_KEY   = 'ph_catalog_v1'
 
 export default function ItemCatalogScreen() {
-  const { catalog, setCatalog, toggleItem } = usePaymentStore()
+  const { catalog, setCatalog, toggleItem, activeRegions } = usePaymentStore()
   const [loading, setLoading] = useState(false)
+
+  const enabledRegions = REGIONS.filter(r => activeRegions.includes(r.code))
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
       const results = await Promise.allSettled(
-        REGIONS.map(r => loadItems(APP_ID, r.code).then(raw => mapItems(raw, r.code)))
+        enabledRegions.map(r => loadItems(APP_ID, r.code).then(raw => mapItems(raw, r.code)))
       )
 
       const newItems: StoreItem[] = []
       for (let i = 0; i < results.length; i++) {
         const r = results[i]
         if (r.status === 'fulfilled') {
-          // Preserve enabled state for items already in catalog
           const fresh = r.value.map(item => {
             const existing = catalog.find(
               c => c.itemId === item.itemId && c.region === item.region
@@ -36,7 +39,7 @@ export default function ItemCatalogScreen() {
           })
           newItems.push(...fresh)
         } else {
-          console.warn('Failed to load region', REGIONS[i].code, r.reason)
+          console.warn('Failed to load region', enabledRegions[i].code, r.reason)
         }
       }
 
@@ -48,19 +51,17 @@ export default function ItemCatalogScreen() {
     } finally {
       setLoading(false)
     }
-  }, [catalog, setCatalog])
+  }, [catalog, setCatalog, activeRegions])
 
   const onToggle = useCallback((itemId: number, region: string, _enabled: boolean) => {
     toggleItem(itemId, region)
-    // Persist updated catalog
     const updated = catalog.map(i =>
       i.itemId === itemId && i.region === region ? { ...i, enabled: !i.enabled } : i
     )
     AsyncStorage.setItem(CATALOG_KEY, JSON.stringify(updated)).catch(() => {})
   }, [catalog, toggleItem])
 
-  // Build sections grouped by region
-  const sections = REGIONS.map(r => ({
+  const sections = enabledRegions.map(r => ({
     region: r,
     data:   catalog.filter(i => i.region === r.code),
   })).filter(s => s.data.length > 0)
@@ -68,12 +69,15 @@ export default function ItemCatalogScreen() {
   const renderItem = ({ item }: { item: StoreItem }) => (
     <View style={styles.row}>
       <View style={styles.rowLeft}>
-        <Text style={styles.diamonds}>
-          {item.diamonds} 💎
-          {item.bonusDiamonds > 0 && (
-            <Text style={styles.bonus}> +{item.bonusDiamonds}</Text>
-          )}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Icon name="diamond" size={15} color={colors.gray900} />
+          <Text style={styles.diamonds}>
+            {item.diamonds}
+            {item.bonusDiamonds > 0 && (
+              <Text style={styles.bonus}> +{item.bonusDiamonds}</Text>
+            )}
+          </Text>
+        </View>
         <Text style={styles.price}>
           {formatPrice(item.price, item.currencySymbol)}
         </Text>
@@ -81,8 +85,8 @@ export default function ItemCatalogScreen() {
       <Switch
         value={item.enabled}
         onValueChange={v => onToggle(item.itemId, item.region, v)}
-        trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-        thumbColor={item.enabled ? '#3b82f6' : '#9ca3af'}
+        trackColor={{ false: colors.gray300, true: colors.primaryLight }}
+        thumbColor={item.enabled ? colors.primary : colors.gray400}
       />
     </View>
   )
@@ -96,9 +100,7 @@ export default function ItemCatalogScreen() {
   )
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
-
-      {/* Refresh button */}
+    <View style={{ flex: 1, backgroundColor: colors.gray50 }}>
       <View style={styles.header}>
         <Text style={styles.headerHint}>
           {catalog.length === 0
@@ -111,8 +113,8 @@ export default function ItemCatalogScreen() {
           disabled={loading}
         >
           {loading
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={styles.refreshBtnText}>Actualizar ↻</Text>
+            ? <ActivityIndicator size="small" color={colors.white} />
+            : <Text style={styles.refreshBtnText}>Actualizar</Text>
           }
         </TouchableOpacity>
       </View>
@@ -133,24 +135,23 @@ export default function ItemCatalogScreen() {
           contentContainerStyle={{ paddingBottom: 32 }}
         />
       )}
-
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', padding: 14, borderBottomWidth: 1, borderColor: '#e5e7eb' },
-  headerHint:       { fontSize: 13, color: '#6b7280', flex: 1 },
-  refreshBtn:       { backgroundColor: '#3b82f6', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  refreshBtnDisabled: { backgroundColor: '#93c5fd' },
-  refreshBtnText:   { color: '#fff', fontSize: 13, fontWeight: '600' },
-  sectionHead:      { backgroundColor: '#f3f4f6', paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderColor: '#e5e7eb' },
-  sectionTitle:     { fontSize: 13, fontWeight: '700', color: '#374151' },
-  row:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#f3f4f6' },
-  rowLeft:          { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  diamonds:         { fontSize: 15, fontWeight: '600', color: '#111827' },
-  bonus:            { fontSize: 12, color: '#16a34a' },
-  price:            { fontSize: 13, color: '#3b82f6', fontWeight: '500' },
+  header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, padding: spacing.md + 2, borderBottomWidth: 1, borderColor: colors.gray200 },
+  headerHint:       { fontSize: fontSize.base, color: colors.gray500, flex: 1 },
+  refreshBtn:       { backgroundColor: colors.primary, borderRadius: radii.sm, paddingHorizontal: spacing.md + 2, paddingVertical: spacing.sm },
+  refreshBtnDisabled: { backgroundColor: colors.primaryLight },
+  refreshBtnText:   { color: colors.white, fontSize: fontSize.base, fontWeight: fontWeight.semibold },
+  sectionHead:      { backgroundColor: colors.gray100, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderBottomWidth: 1, borderColor: colors.gray200 },
+  sectionTitle:     { fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.gray700 },
+  row:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderColor: colors.gray100 },
+  rowLeft:          { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  diamonds:         { fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.gray900 },
+  bonus:            { fontSize: fontSize.sm, color: colors.success },
+  price:            { fontSize: fontSize.base, color: colors.primary, fontWeight: fontWeight.medium },
   empty:            { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText:        { fontSize: 14, color: '#9ca3af', textAlign: 'center', lineHeight: 24 },
+  emptyText:        { fontSize: fontSize.md, color: colors.gray400, textAlign: 'center', lineHeight: 24 },
 })

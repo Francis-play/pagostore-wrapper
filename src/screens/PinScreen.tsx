@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native'
+import { View, Text, TextInput, StyleSheet, Alert } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../navigation/RootNavigator'
+import { Button } from '../components/Button'
+import { colors, spacing, radii, fontSize, fontWeight } from '../theme/tokens'
 import SecureStore from '../core/secureStorePlaceholder'
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Pin'>
 
 export default function PinScreen() {
-
   const navigation = useNavigation<Nav>()
   const [pin, setPin]           = useState('')
   const [storedPin, setStoredPin] = useState<string | null>(null)
@@ -54,6 +55,7 @@ export default function PinScreen() {
         maxLength={6}
         style={styles.input}
         placeholder="••••"
+        placeholderTextColor={colors.gray400}
       />
       <Button
         title={storedPin ? 'Entrar' : 'Guardar PIN'}
@@ -64,7 +66,7 @@ export default function PinScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  title:     { fontSize: 20, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
-  input:     { borderWidth: 1, borderColor: '#d1d5db', padding: 12, marginBottom: 16, borderRadius: 8, fontSize: 18, textAlign: 'center', letterSpacing: 8 },
+  container: { flex: 1, justifyContent: 'center', padding: spacing.xxl, backgroundColor: colors.white },
+  title:     { fontSize: 20, fontWeight: fontWeight.semibold, marginBottom: spacing.lg, textAlign: 'center', color: colors.gray900 },
+  input:     { borderWidth: 1, borderColor: colors.gray300, padding: spacing.md, marginBottom: spacing.lg, borderRadius: radii.sm, fontSize: 18, textAlign: 'center', letterSpacing: 8, color: colors.gray900 },
 })

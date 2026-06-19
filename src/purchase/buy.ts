@@ -1,18 +1,29 @@
-import { purchaseQueue } from '../core/purchaseQueue'
-import { buildBuyUrl }   from '../utils/buildBuyUrl'
+import { usePaymentStore } from '../store/usePaymentStore'
 
 type BuyParams = {
   appId:     number
   channelId: number
   itemId:    number
   qty?:      number
+  playerId:  string
+  region:    string
+  promo?:    string | null
+  cvc:       string
 }
 
 export function buy(params: BuyParams) {
-  const url = buildBuyUrl(params.appId, params.channelId, params.itemId)
+  const { add } = usePaymentStore.getState()
   const count = params.qty ?? 1
 
   for (let i = 0; i < count; i++) {
-    purchaseQueue.enqueue({ url, id: `${params.itemId}_${i}` })
+    add({
+      playerId: params.playerId,
+      itemId:   params.itemId,
+      channel:  params.channelId,
+      region:   params.region,
+      promo:    params.promo ?? null,
+      qty:      1,
+      cvc:      params.cvc,
+    })
   }
 }
