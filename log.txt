@@ -1,0 +1,67 @@
+> Task :app:buildCMakeRelWithDebInfo[arm64-v8a]
+C/C++: ninja: Entering directory `/home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/.cxx/RelWithDebInfo/1a28701x/arm64-v8a'
+C/C++: /usr/local/lib/android/sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ --target=aarch64-none-linux-android24 --sysroot=/usr/local/lib/android/sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/sysroot -DRN_SERIALIZABLE_STATE -Dappmodules_EXPORTS -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/build/generated/autolinking/src/main/jni -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-safe-area-context/android/src/main/jni -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-screens/android/src/main/jni -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/. -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/@react-native-async-storage/async-storage/andro
+C/C++: In file included from /home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp:16:
+C/C++: In file included from /home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-svg/android/src/main/jni/./rnsvg.h:6:
+C/C++: In file included from /home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGComponentDescriptors.h:5:
+C/C++: /home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGShadowNodes.h:4:10: fatal error: 'react/renderer/components/rnsvg/EventEmitters.h' file not found
+C/C++:     4 | #include <react/renderer/components/rnsvg/EventEmitters.h>
+C/C++:       |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+C/C++: 1 error generated.
+> Task :app:buildCMakeRelWithDebInfo[arm64-v8a] FAILED
+[Incubating] Problems report is available at: file:///home/runner/work/pagostore-wrapper/pagostore-wrapper/android/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:buildCMakeRelWithDebInfo[arm64-v8a]'.
+> com.android.ide.common.process.ProcessException: ninja: Entering directory `/home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/.cxx/RelWithDebInfo/1a28701x/arm64-v8a'
+  [0/2] Re-checking globbed directories...
+  [1/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/EventEmitters.cpp.o
+  [2/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/AsyncStorageSpecJSI-generated.cpp.o
+  [3/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/AsyncStorageSpec-generated.cpp.o
+  [4/63] Building CXX object CMakeFiles/appmodules.dir/OnLoad.cpp.o
+  [5/63] Building CXX object CMakeFiles/appmodules.dir/home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o
+  FAILED: CMakeFiles/appmodules.dir/home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o 
+  /usr/local/lib/android/sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ --target=aarch64-none-linux-android24 --sysroot=/usr/local/lib/android/sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/linux-x86_64/sysroot -DRN_SERIALIZABLE_STATE -Dappmodules_EXPORTS -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/build/generated/autolinking/src/main/jni -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-safe-area-context/android/src/main/jni -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-screens/android/src/main/jni -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/. -I/home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/@react-native-async-storage/async-storage/android/bu
+  In file included from /home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp:16:
+  In file included from /home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-svg/android/src/main/jni/./rnsvg.h:6:
+  In file included from /home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGComponentDescriptors.h:5:
+  /home/runner/work/pagostore-wrapper/pagostore-wrapper/node_modules/react-native-svg/android/src/main/jni/../../../../common/cpp/react/renderer/components/rnsvg/RNSVGShadowNodes.h:4:10: fatal error: 'react/renderer/components/rnsvg/EventEmitters.h' file not found
+      4 | #include <react/renderer/components/rnsvg/EventEmitters.h>
+        |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  1 error generated.
+  [6/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/ComponentDescriptors.cpp.o
+  [7/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/States.cpp.o
+  [8/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/Props.cpp.o
+  [9/63] Building CXX object AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/ShadowNodes.cpp.o
+  [10/63] Building CXX object RNKeychainSpec_autolinked_build/CMakeFiles/react_codegen_RNKeychainSpec.dir/RNKeychainSpec-generated.cpp.o
+  ninja: build stopped: subcommand failed.
+  
+  C++ build system [build] failed while executing:
+      /usr/local/lib/android/sdk/cmake/3.22.1/bin/ninja \
+        -C \
+        /home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app/.cxx/RelWithDebInfo/1a28701x/arm64-v8a \
+        appmodules \
+        react_codegen_rnscreens \
+        react_codegen_rnsvg \
+        react_codegen_safeareacontext
+    from /home/runner/work/pagostore-wrapper/pagostore-wrapper/android/app
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:buildCMakeRelWithDebInfo[arm64-v8a]'.
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:135)
+	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:288)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:133)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:121)
+	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:41)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
