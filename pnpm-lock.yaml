@@ -35,6 +35,9 @@ importers:
       react-native-screens:
         specifier: ^4.4.0
         version: 4.24.0(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@19.1.2(typescript@5.5.3))(@react-native/metro-config@0.81.6(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)
+      react-native-svg:
+        specifier: ^15.15.5
+        version: 15.15.5(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@19.1.2(typescript@5.5.3))(@react-native/metro-config@0.81.6(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)
       react-native-webview:
         specifier: ^13.13.1
         version: 13.16.1(react-native@0.81.5(@babel/core@7.29.0)(@react-native-community/cli@19.1.2(typescript@5.5.3))(@react-native/metro-config@0.81.6(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.1.0))(react@19.1.0)
