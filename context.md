@@ -15,7 +15,8 @@ App React Native (v3) para pagos vía WebView con catálogo de items, cola de co
 - Remote: `https://github.com/Francis-play/pagostore-wrapper.git`
 - Branch activa: `fix/login-and-queue-unification`
 - Default: `main`
-- **⚠️ Pendiente: commit + push** — ~30 archivos modificados sin commit (toda la migración)
+- Último commit: `3a38de9 feat: migrate to token-based design system + lucide-react-native icons`
+- ✅ Push realizado a origin
 
 ---
 
@@ -62,10 +63,9 @@ src/
 ---
 
 ## Pendiente
-1. **⚠️ Commit + Push a origin** — ~30 archivos modificados (App.tsx, screens, store, webview, etc.)
-2. Verificar que `Icon.tsx` compile y renderice correctamente con lucide-react-native 1.x.
-3. Correr la app en emulador/dispositivo para validar todos los iconos.
-4. Los 3 errores pre-existentes de TypeScript no bloquean pero deberían corregirse eventualmente:
+1. Verificar que `Icon.tsx` compile y renderice correctamente con lucide-react-native 1.x.
+2. Correr la app en emulador/dispositivo para validar todos los iconos.
+3. Los 3 errores pre-existentes de TypeScript no bloquean pero deberían corregirse eventualmente:
    - `__tests__/App.test.tsx:9` — agregar `@types/jest`
    - `src/context/WebViewContext.tsx:4` — declarar módulo para `.js`
    - `src/core/paymentController.ts:23` — corregir tipo QueueItem
@@ -73,3 +73,21 @@ src/
 ## Recurrente
 - Después de cada sesión de trabajo: `git add -A; git commit -m "..." ; git push origin fix/login-and-queue-unification`
 - Ejecutar `pnpm tsc --noEmit` antes de commit para verificar types
+- `git config core.autocrlf input` en repos nuevos para evitar CRLF warnings
+
+---
+
+## 2026-06-19
+
+Branch: `fix/login-and-queue-unification` | Commit: `3a38de9` | ✅ Push OK
+
+### Lo que se hizo
+- Commit + push de la migración completa a tokens + lucide-react-native
+- Mapeo y limpieza de sesiones de IA en 3 proyectos (PagoHelper, Fshark, Motoapp)
+- Escritos `context.md` para cada proyecto con resumen detallado y pendientes
+- Creado skill `persist-context` para ciclo de vida del contexto entre sesiones
+- Creado `tropiezos.md` con 7 problemas recurrentes del entorno y soluciones
+- Configurado git `core.autocrlf=input` + `fscache` + `preloadindex` en los 3 repos
+- Actualizado `opencode.jsonc` global: compaction, permission, instructions → tropiezos.md
+- Creado `tui.json` para eliminar warn de deprecación
+- Creado `opencode.json` en PagoHelper con instructions → context.md

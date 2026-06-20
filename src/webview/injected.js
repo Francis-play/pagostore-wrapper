@@ -9,10 +9,11 @@
 
   // NAV: pushState, replaceState, popstate and initial
   (function historyWrap() {
-    const _push = history.pushState;
-    const _replace = history.replaceState;
-    history.pushState = function () { _push.apply(this, arguments); send("NAV", location.href); };
-    history.replaceState = function () { _replace.apply(this, arguments); send("NAV", location.href); };
+    if (typeof window.history === 'undefined') return;
+    const _push = window.history.pushState;
+    const _replace = window.history.replaceState;
+    window.history.pushState = function () { _push.apply(this, arguments); send("NAV", location.href); };
+    window.history.replaceState = function () { _replace.apply(this, arguments); send("NAV", location.href); };
     window.addEventListener("popstate", () => send("NAV", location.href));
     // initial
     send("NAV", location.href);
