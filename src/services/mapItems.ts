@@ -29,11 +29,12 @@ export function mapItems(items: any[], region: string): StoreItem[] {
 }
 
 /** Format a price using the currencySymbol pattern from the API.
- *  Pattern: "CLP$ %.2f"  →  replace %.2f with formatted number */
+ *  Patterns: "CLP$ %.2f", "RD$ %d", "RD$ %s" → replace %... with formatted number */
 export function formatPrice(amount: number, symbol: string): string {
   if (!symbol) return String(amount)
-  return symbol.replace('%.2f', amount.toLocaleString('es-419', {
+  const formatted = amount.toLocaleString('es-419', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }))
+  })
+  return symbol.replace(/%(?:\.\d+)?[dfs]/, formatted)
 }

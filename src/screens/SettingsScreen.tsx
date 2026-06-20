@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react'
-import { View, Text, TouchableOpacity, Switch, Alert, ScrollView, StyleSheet } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { View, Text, TouchableOpacity, Alert, ScrollView, StyleSheet } from 'react-native'
 import AsyncStorage         from '@react-native-async-storage/async-storage'
 import { useNavigation }   from '@react-navigation/native'
 import { usePaymentStore } from '../store/usePaymentStore'
-import { clearCard }       from '../security/cardStore'
+import { loadCard, clearCard } from '../security/cardStore'
 import { useWebView }      from '../context/WebViewContext'
 import { REGIONS }         from '../config/regions'
 import { NavProp }         from '../navigation/RootNavigator'
@@ -14,10 +14,17 @@ import { colors, radii, spacing, fontSize, fontWeight } from '../theme/tokens'
 
 const REGIONS_KEY = 'ph_active_regions'
 
+function maskCard(num: string): string {
+  const clean = num.replace(/\D/g, '')
+  if (clean.length < 4) return `****${clean.slice(-4)}`
+  return `**** ${clean.slice(-4)}`
+}
+
 export default function SettingsScreen() {
   const navigation = useNavigation<NavProp<'Settings'>>()
-  const { player, setPlayer, activeRegions, setActiveRegions, toggleRegion } = usePaymentStore()
+  const { player, setPlayer, activeRegions, setActiveRegions } = usePaymentStore()
   const { mountWebView, unmountWebView, sendCommand } = useWebView()
+  const [cardInfo, setCardInfo] = useState<string | null>(null)
 
   useEffect(() => {
     AsyncStorage.getItem(REGIONS_KEY).then(raw => {
@@ -31,6 +38,12 @@ export default function SettingsScreen() {
   useEffect(() => {
     AsyncStorage.setItem(REGIONS_KEY, JSON.stringify(activeRegions)).catch(() => {})
   }, [activeRegions])
+
+  useEffect(() => {
+    loadCard().then(c => {
+      if (c) setCardInfo(`${c.name} — ${maskCard(c.number)}`)
+    }).catch(() => {})
+  }, [])
 
   const onSignOut = () => {
     Alert.alert(
@@ -55,23 +68,27 @@ export default function SettingsScreen() {
     )
   }
 
-  const onDeleteCard = () => {
+  const onViewCard = async () => {
+    const card = await loadCard()
+    if (!card) {
+      Alert.alert('Sin tarjeta', 'No hay tarjeta guardada. Se guarda automáticamente al hacer un pago.')
+      return
+    }
     Alert.alert(
-      'Eliminar tarjeta',
-      '¿Eliminar los datos de tarjeta guardados?',
+      'Tarjeta guardada',
+      `Titular: ${card.name}\nNúmero: ${maskCard(card.number)}\nVence: ${card.expiry}\nEmail: ${card.email}`,
       [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            await clearCard()
-            Alert.alert('Listo', 'Tarjeta eliminada.')
-          },
-        },
+        { text: 'Cerrar' },
+        { text: 'Eliminar', style: 'destructive', onPress: async () => {
+          await clearCard()
+          setCardInfo(null)
+          Alert.alert('Listo', 'Tarjeta eliminada.')
+        }},
       ]
     )
   }
+
+  const activeCount = activeRegions.length
 
   const Row = ({ label, sub, onPress, danger }: { label: string; sub?: string; onPress: () => void; danger?: boolean }) => (
     <TouchableOpacity style={styles.row} onPress={onPress}>
@@ -86,27 +103,16 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.sectionWrap}>
-        <Section title="Regiones activas" hint="Selecciona los países que aparecen en el catálogo. Las regiones desactivadas no se cargan.">
-          <Card padded={false}>
-            {REGIONS.map(r => (
-              <View key={r.code} style={styles.regionRow}>
-                <Text style={styles.regionFlag}>{r.flag}</Text>
-                <Text style={styles.regionLabel}>{r.label}</Text>
-                <Switch
-                  value={activeRegions.includes(r.code)}
-                  onValueChange={() => toggleRegion(r.code)}
-                  trackColor={{ false: colors.gray300, true: colors.primaryLight }}
-                  thumbColor={activeRegions.includes(r.code) ? colors.primary : colors.gray100}
-                />
-              </View>
-            ))}
-          </Card>
-        </Section>
 
-        <Section title="Catálogo">
+        <Section title="General">
           <Card padded={false}>
             <Row
-              label="Items disponibles"
+              label="Regiones activas"
+              sub={`${activeCount} de ${REGIONS.length} países seleccionados`}
+              onPress={() => navigation.navigate('RegionSettings')}
+            />
+            <Row
+              label="Catálogo de items"
               sub="Cargar y activar/desactivar items por región"
               onPress={() => navigation.navigate('ItemCatalog')}
             />
@@ -116,10 +122,9 @@ export default function SettingsScreen() {
         <Section title="Tarjeta">
           <Card padded={false}>
             <Row
-              label="Eliminar tarjeta guardada"
-              sub="Los datos se borran del Keychain"
-              onPress={onDeleteCard}
-              danger
+              label={cardInfo ? `Ver tarjeta (${cardInfo})` : 'Ver tarjeta guardada'}
+              sub={cardInfo ? undefined : 'No hay tarjeta guardada'}
+              onPress={onViewCard}
             />
           </Card>
         </Section>
@@ -134,6 +139,7 @@ export default function SettingsScreen() {
             />
           </Card>
         </Section>
+
       </View>
     </ScrollView>
   )
@@ -142,9 +148,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: colors.gray50 },
   sectionWrap:  { paddingBottom: spacing.xxxl },
-  regionRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderColor: colors.gray100, gap: 12 },
-  regionFlag:   { fontSize: 22 },
-  regionLabel:  { flex: 1, fontSize: fontSize.lg, color: colors.gray900, fontWeight: fontWeight.medium },
   row:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md + 2, borderTopWidth: 1, borderColor: colors.gray100 },
   rowLabel:     { fontSize: fontSize.lg, color: colors.gray900, fontWeight: fontWeight.medium },
   rowSub:       { fontSize: fontSize.sm, color: colors.gray400, marginTop: spacing.xs },

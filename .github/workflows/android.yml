@@ -72,15 +72,7 @@ jobs:
       - name: Build Release APK
         working-directory: android
         run: |
-         ./gradlew \
-          :react-native-async-storage_async-storage:generateCodegenArtifactsFromSchema \
-          :react-native-keychain:generateCodegenArtifactsFromSchema \
-          :react-native-webview:generateCodegenArtifactsFromSchema \
-          :react-native-screens:generateCodegenArtifactsFromSchema \
-          :react-native-safe-area-context:generateCodegenArtifactsFromSchema \
-          :react-native-svg:generateCodegenArtifactsFromSchema \
-          :app:assembleRelease \
-         --stacktrace
+         ./gradlew :app:assembleRelease --stacktrace
 
       # ---------- ARTIFACT ----------
       - uses: actions/upload-artifact@v4

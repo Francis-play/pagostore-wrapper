@@ -9,8 +9,9 @@ import ItemsScreen        from '../screens/ItemsScreen'
 import CheckoutScreen     from '../screens/CheckoutScreen'
 import ResultScreen       from '../screens/ResultScreen'
 import BatchPaymentScreen from '../screens/BatchPaymentScreen'
-import SettingsScreen     from '../screens/SettingsScreen'
-import ItemCatalogScreen  from '../screens/ItemCatalogScreen'
+import SettingsScreen          from '../screens/SettingsScreen'
+import ItemCatalogScreen       from '../screens/ItemCatalogScreen'
+import RegionSettingsScreen    from '../screens/RegionSettingsScreen'
 
 export type RootStackParamList = {
   Pin:         undefined
@@ -30,8 +31,9 @@ export type RootStackParamList = {
   Checkout:    { cvc: string }
   Result:      { ok: boolean }
   Batch:       undefined
-  Settings:    undefined
-  ItemCatalog: undefined
+  Settings:       undefined
+  ItemCatalog:    undefined
+  RegionSettings: undefined
 }
 
 export type NavProp<T extends keyof RootStackParamList> =
@@ -83,6 +85,11 @@ export default function RootNavigator() {
           name="ItemCatalog"
           component={ItemCatalogScreen}
           options={{ title: 'Catálogo de items' }}
+        />
+        <Stack.Screen
+          name="RegionSettings"
+          component={RegionSettingsScreen}
+          options={{ title: 'Regiones activas' }}
         />
 
       </Stack.Navigator>

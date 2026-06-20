@@ -71,3 +71,7 @@ yarn-error.log
 # Backup dirs
 _backup_*/
 docs/
+
+# Build logs
+log.txt
+logn.txt
